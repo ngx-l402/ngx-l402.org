@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>ngx_l402 · Accept Lightning payments in front of any HTTP API</title>
+<title>ngx-l402 · Accept Lightning payments in front of any HTTP API</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="description" content="An open-source nginx module that puts a Lightning paywall in front of any HTTP API. Speaks L402 today, MPP-Lightning next." />
 <meta name="theme-color" content="#fbfaf7" />
 
-<meta property="og:title" content="ngx_l402 · Lightning paywall as an nginx module" />
+<meta property="og:title" content="ngx-l402 · Lightning paywall as an nginx module" />
 <meta property="og:description" content="Accept Lightning payments in front of any HTTP API. One nginx directive. L402 + MPP-Lightning." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://ngx-l402.org" />
@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316170f'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='%23fbfaf7' font-family='ui-monospace,Menlo,monospace' font-weight='700' font-size='17'%3EL%3C/text%3E%3C/svg%3E" />
+<link rel="icon" type="image/png" href="logo.png" />
 
 <style>
   /* =====================================================================
@@ -100,6 +100,66 @@
     opacity: 0.7; display: inline-block;
   }
 
+  /* ============================ TOPBAR ============================ */
+  .topbar {
+    border-bottom: 1px solid var(--rule);
+    background: var(--bg);
+  }
+  .topbar__inner {
+    max-width: 1308px;
+    margin: 0 auto;
+    padding: 16px var(--pad-x);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .topbar__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--ink);
+  }
+  .topbar__brand:hover { color: var(--ink); }
+  .topbar__logo {
+    height: 64px;
+    width: auto;
+    display: block;
+  }
+  .topbar__wordmark {
+    font-family: 'JetBrains Mono', monospace;
+    font-feature-settings: 'ss02','ss05','zero';
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .topbar__nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  .topbar__link {
+    padding: 7px 10px;
+    border-radius: 6px;
+    color: var(--ink-2);
+    transition: color .12s, background .12s;
+  }
+  .topbar__link:hover { color: var(--ink); background: var(--bg-2); }
+  .topbar__gh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--rule-2);
+    color: var(--ink);
+    background: var(--bg);
+    transition: border-color .12s;
+  }
+  .topbar__gh:hover { border-color: var(--ink-3); color: var(--ink); }
+
   /* ============================ MAIN ============================ */
   .main {
     min-width: 0;
@@ -116,12 +176,10 @@
   .sec--hero { padding-top: 80px; }
 
   .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
-  .brand__glyph {
-    width: 24px; height: 24px; border-radius: 6px;
-    background: var(--ink); color: var(--bg);
-    display: grid; place-items: center;
-    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px;
-    line-height: 1;
+  .brand__logo {
+    height: 28px; width: auto;
+    display: block;
+    border-radius: 5px;
   }
   .brand__name { font-size: 15px; letter-spacing: -0.01em; }
 
@@ -447,6 +505,22 @@
 
 <a class="skip" href="#overview">Skip to content</a>
 
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="topbar__brand" href="#overview" aria-label="ngx-l402 home">
+      <img src="logo.png" alt="" class="topbar__logo" width="96" height="64" />
+      <span class="topbar__wordmark">ngx-l402</span>
+    </a>
+    <nav class="topbar__nav" aria-label="Primary">
+      <a class="topbar__link" href="#quickstart">Quickstart</a>
+      <a class="topbar__link" href="#" target="_blank" rel="noopener noreferrer">Docs</a>
+      <a class="topbar__gh" href="https://github.com/ngx-l402/ngx-l402.org" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
+        <svg width="14" height="14" aria-hidden="true"><use href="#i-gh" /></svg> GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="i-gh" viewBox="0 0 16 16">
     <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
@@ -457,15 +531,11 @@
 
   <!-- 01 · Overview / Hero -->
   <section id="overview" class="sec sec--hero" aria-labelledby="overview-h">
-    <div class="crumb mono">
-      <b>ngx_l402</b> <span class="sep">/</span>
-      a Lightning paywall as an nginx module
-    </div>
     <h1 id="overview-h" class="h1">
       Accept Lightning payments in front of <u>any HTTP API</u>.
     </h1>
     <p class="lede">
-      ngx_l402 is an open-source nginx module that puts a Lightning paywall
+      ngx-l402 is an open-source nginx module that puts a Lightning paywall
       in front of any upstream — no API rewrite, no SDK. Speaks <span class="mono">L402</span>
       (bLIP-26) today and <span class="mono">MPP-Lightning</span> (IETF
       <span class="mono">draft-ryan-httpauth-payment</span>) next, both verifying the same
@@ -630,7 +700,7 @@ server {
   <!-- 03 · Why -->
   <section id="why" class="sec" aria-labelledby="why-h">
     <div class="sectionlabel">
-      <span class="num">§ 03</span><span class="dot">·</span><span class="name">Why ngx_l402</span>
+      <span class="num">§ 03</span><span class="dot">·</span><span class="name">Why ngx-l402</span>
     </div>
     <h2 id="why-h" class="h2">Three reasons it lives at the edge.</h2>
     <div class="whygrid">
@@ -652,7 +722,7 @@ server {
         <h3 class="whycard__title">Eight Lightning backends, one config line.</h3>
         <div class="whycard__body">
           <p>
-            Point ngx_l402 at the Lightning infrastructure you already run.
+            Point ngx-l402 at the Lightning infrastructure you already run.
             Swap backends without touching your application — change one
             directive and reload nginx.
           </p>
@@ -711,7 +781,7 @@ server {
 <pre><span class="f">$ docker</span> run --rm -p <span class="n">8080</span>:<span class="n">80</span> \
   -v <span class="s">$(pwd)/nginx.conf:/etc/nginx/conf.d/api.conf</span> \
   -v <span class="s">$(pwd)/invoice.macaroon:/etc/lnd/invoice.macaroon:ro</span> \
-  <span class="s">ghcr.io/ngx-l402/ngx_l402:1.2.5</span>
+  <span class="s">ghcr.io/ngx-l402/ngx-l402:1.2.5</span>
 
 <span class="c"># Gateway listens on :8080. Point your client at it.</span>
 <span class="c"># Mount your own nginx.conf + Lightning credentials.</span></pre>
@@ -719,7 +789,7 @@ server {
         <template class="copy-src">docker run --rm -p 8080:80 \
   -v $(pwd)/nginx.conf:/etc/nginx/conf.d/api.conf \
   -v $(pwd)/invoice.macaroon:/etc/lnd/invoice.macaroon:ro \
-  ghcr.io/ngx-l402/ngx_l402:1.2.5</template>
+  ghcr.io/ngx-l402/ngx-l402:1.2.5</template>
       </figure>
     </div>
     <ol class="steplist">
@@ -770,8 +840,8 @@ server {
     <div class="footer__grid">
       <div class="footer__col">
         <div class="brand">
-          <span class="brand__glyph" aria-hidden="true">L</span>
-          <span class="brand__name mono">ngx_l402</span>
+          <img src="logo.png" alt="" class="brand__logo" width="42" height="28" />
+          <span class="brand__name mono">ngx-l402</span>
         </div>
         <p class="footer__blurb">
           A Lightning paywall as an nginx module. Open-source, MIT-licensed.
