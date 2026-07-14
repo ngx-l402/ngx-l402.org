@@ -1,0 +1,325 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Dry-Run (Shadow) Mode - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html" class="active"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./dry-run.html#dry-run-shadow-mode" id="dry-run-shadow-mode"><h1>Dry-Run (Shadow) Mode</h1></a>
+<p>Shadow mode lets operators roll out L402 enforcement safely. With
+<code>l402_dry_run on;</code> set on a location, the module evaluates the full pricing
+pipeline, synthesises a valid L402 challenge, and records structured logs
+and Prometheus metrics — but <strong>always passes the request through to the
+upstream</strong>. No client ever sees <code>401</code> or <code>402</code>.</p>
+<p>This is the recommended way to validate pricing, LN backend reachability,
+and traffic patterns with real production traffic before flipping a route
+to enforcement.</p>
+<hr />
+<a class="header" href="./dry-run.html#enabling-shadow-mode" id="enabling-shadow-mode"><h2>Enabling shadow mode</h2></a>
+<pre><code class="language-nginx">location /api/ {
+    l402                        on;
+    l402_amount_msat_default    10000;
+    l402_dry_run                on;          # evaluate, log, never block
+    proxy_pass                  http://upstream;
+}
+</code></pre>
+<p><code>l402_dry_run</code> accepts <code>on</code> or <code>off</code> (default). It can be combined with any
+other <code>l402_*</code> directive — dynamic pricing from Redis, multi-tenant LNURLs,
+macaroon timeouts, invoice rate limits — so the shadow-mode numbers you
+measure match the configuration you are about to enforce.</p>
+<p><code>l402</code> must still be <code>on</code> for the module to enter the access handler.
+Turning <code>l402</code> off disables the module entirely, including shadow mode.</p>
+<hr />
+<a class="header" href="./dry-run.html#what-happens-per-request" id="what-happens-per-request"><h2>What happens per request</h2></a>
+<p>For every request reaching a shadow-mode location, the module:</p>
+<ol>
+<li>Reads the static and dynamic (Redis) price for the route and picks the
+effective <code>amount_msat</code>.</li>
+<li>Looks up any per-tenant LNURL override.</li>
+<li>Verifies the <code>Authorization</code> header if one is present (L402 or Cashu).</li>
+<li>If no valid token is present, calls the configured LN backend and
+generates a real invoice + macaroon — exactly the challenge enforce
+mode would have returned.</li>
+<li>Emits a structured JSON log line and bumps the relevant Prometheus
+counters.</li>
+<li>Returns <code>NGX_DECLINED</code>, so Nginx continues to the content phase and
+serves the upstream response with its natural status code.</li>
+</ol>
+<blockquote>
+<p><strong>Cost note</strong>: generating a challenge contacts your LN backend on every
+unauthenticated request. If you have high traffic, start by enabling
+shadow mode on a sampled location (e.g. a canary route) before rolling
+it out everywhere.</p>
+<p><strong>Latency cap</strong>: the challenge-synthesis call is bounded by a 5-second
+timeout. If the LN backend does not respond within that window the
+request still passes through (with no <code>X-L402-Dry-Run-Challenge</code>
+header) and <code>l402_dry_run_challenge_errors_total</code> is incremented —
+shadow mode must never add latency to user-facing traffic.</p>
+</blockquote>
+<hr />
+<a class="header" href="./dry-run.html#response-headers" id="response-headers"><h2>Response headers</h2></a>
+<p>Shadow mode attaches debug headers to the upstream response so operators
+can inspect what would have happened without scraping logs:</p>
+<table><thead><tr><th> Header </th><th> Meaning </th></tr></thead><tbody>
+<tr><td> <code>X-L402-Dry-Run: 1</code> </td><td> Marks the response as produced by shadow mode. Always present. </td></tr>
+<tr><td> <code>X-L402-Dry-Run-Price-Msat: &lt;n&gt;</code> </td><td> Effective price for this route. Only emitted when the request <em>would</em> have been challenged (<code>402</code>) — not on paid-valid or rejected-invalid responses, to avoid leaking pricing against decided traffic. </td></tr>
+<tr><td> <code>X-L402-Dry-Run-Challenge: L402 macaroon=&quot;...&quot;, invoice=&quot;...&quot;</code> </td><td> The exact <code>WWW-Authenticate</code> value enforce mode would have returned. Only present when the request would have been challenged (<code>402</code>) and the LN backend produced an invoice. </td></tr>
+<tr><td> <code>WWW-Authenticate: L402 macaroon=&quot;...&quot;, invoice=&quot;...&quot;</code> </td><td> Also set alongside the challenge header, so real L402 clients can follow the payment flow in a staging environment. </td></tr>
+<tr><td> <code>X-L402-Dry-Run-Rate-Limited: 1</code> + <code>X-L402-Dry-Run-Retry-After: &lt;sec&gt;</code> </td><td> Set when the request would have been challenged but hit <code>l402_invoice_rate_limit</code>. No invoice is generated and no challenge header is attached, mirroring what enforce mode would have done (429 + <code>Retry-After</code>). </td></tr>
+</tbody></table>
+<hr />
+<a class="header" href="./dry-run.html#structured-log-events" id="structured-log-events"><h2>Structured log events</h2></a>
+<p>Every shadow-mode request produces a single <code>info</code>-level JSON line via the
+Rust logger. A minimal example (formatted for readability):</p>
+<pre><code class="language-json">{
+  &quot;event&quot;: &quot;l402_dry_run&quot;,
+  &quot;route&quot;: &quot;/api/resource&quot;,
+  &quot;price_msat&quot;: 10000,
+  &quot;price_source&quot;: &quot;static&quot;,
+  &quot;backend&quot;: &quot;LNURL&quot;,
+  &quot;client_ip&quot;: &quot;203.0.113.42&quot;,
+  &quot;auth_state&quot;: &quot;missing&quot;,
+  &quot;would_return&quot;: 402
+}
+</code></pre>
+<p>Fields:</p>
+<table><thead><tr><th> Field </th><th> Values </th></tr></thead><tbody>
+<tr><td> <code>route</code> </td><td> Normalised request path used for pricing lookups. </td></tr>
+<tr><td> <code>price_msat</code> </td><td> Effective price in millisatoshis. </td></tr>
+<tr><td> <code>price_source</code> </td><td> <code>static</code> (from <code>nginx.conf</code>) or <code>dynamic</code> (from Redis). </td></tr>
+<tr><td> <code>backend</code> </td><td> LN backend type snapshot: <code>LND</code>, <code>LNURL</code>, <code>NWC</code>, <code>CLN</code>, <code>BOLT12</code>, <code>ECLAIR</code>. </td></tr>
+<tr><td> <code>client_ip</code> </td><td> From <code>X-Real-IP</code> → <code>X-Forwarded-For</code> → socket address. </td></tr>
+<tr><td> <code>auth_state</code> </td><td> <code>missing</code>, <code>valid</code>, or <code>invalid</code>. </td></tr>
+<tr><td> <code>would_return</code> </td><td> HTTP status enforce mode <em>would</em> have used (<code>200</code>, <code>401</code>, <code>402</code>). </td></tr>
+<tr><td> <code>rate_limited</code> </td><td> <code>true</code> when <code>l402_invoice_rate_limit</code> would have produced a <code>429</code> — challenge synthesis was skipped to protect the LN backend. </td></tr>
+</tbody></table>
+<p>Pipe into <code>jq</code> to see a live firehose:</p>
+<pre><code class="language-bash">sudo tail -f /var/log/nginx/error.log \
+  | grep '&quot;event&quot;:&quot;l402_dry_run&quot;' \
+  | jq -c 'select(.would_return != 200) | {route, price_msat, auth_state}'
+</code></pre>
+<hr />
+<a class="header" href="./dry-run.html#prometheus-metrics" id="prometheus-metrics"><h2>Prometheus metrics</h2></a>
+<p>The <code>l402_metrics</code> directive turns a location into a Prometheus scrape
+endpoint. It serves counters in text exposition format v0.0.4.</p>
+<pre><code class="language-nginx">location = /metrics {
+    l402_metrics;
+
+    # Production: restrict to your scrape network.
+    allow 10.0.0.0/8;
+    deny  all;
+}
+</code></pre>
+<p>Scrape it with a standard Prometheus config:</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: ngx_l402
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['nginx:8000']
+</code></pre>
+<p>Counters are kept in an nginx <strong>shared-memory zone</strong>, so they are aggregated
+across all worker processes: a scrape served by any worker returns the true
+total regardless of <code>worker_processes</code>. (If the shared zone cannot be
+allocated at startup the module logs a warning and falls back to per-worker
+counters, which under-report by roughly a factor of <code>worker_processes</code>.)</p>
+<a class="header" href="./dry-run.html#exported-counters" id="exported-counters"><h3>Exported counters</h3></a>
+<table><thead><tr><th> Metric </th><th> Meaning </th></tr></thead><tbody>
+<tr><td> <code>l402_requests_total</code> </td><td> Every request that entered the access handler with <code>l402 on;</code>. Incremented for both enforce and shadow traffic. </td></tr>
+<tr><td> <code>l402_challenges_issued_total</code> </td><td> Requests that received a <code>402</code> response (enforce mode), counted <em>after</em> the rate-limit gate. </td></tr>
+<tr><td> <code>l402_rate_limited_total</code> </td><td> Requests rejected with <code>429</code> by <code>l402_invoice_rate_limit</code> (enforce mode). </td></tr>
+<tr><td> <code>l402_payments_valid_total</code> </td><td> Authorization headers that verified successfully — Lightning + Cashu (enforce mode only — dry-run traffic goes to <code>l402_dry_run_*</code>). </td></tr>
+<tr><td> <code>l402_payments_lightning_total</code> </td><td> Successful payments settled via a Lightning macaroon (classic preimage <em>or</em> auto-detect). </td></tr>
+<tr><td> <code>l402_payments_cashu_total</code> </td><td> Successful payments settled via a Cashu token redemption. </td></tr>
+<tr><td> <code>l402_payments_invalid_total</code> </td><td> Authorization headers that failed verification (enforce mode only). </td></tr>
+<tr><td> <code>l402_payments_missing_total</code> </td><td> Requests without an Authorization header (enforce mode only). </td></tr>
+<tr><td> <code>l402_invoices_generated_total</code> </td><td> Lightning invoices successfully generated for L402 challenges (enforce mode only). </td></tr>
+<tr><td> <code>l402_invoices_generation_errors_total</code> </td><td> Failures generating a Lightning invoice during challenge synthesis (returns <code>500</code>). </td></tr>
+<tr><td> <code>l402_dry_run_requests_total</code> </td><td> Requests handled in shadow mode. </td></tr>
+<tr><td> <code>l402_dry_run_would_block_total</code> </td><td> Shadow-mode requests that <em>would</em> have been blocked (<code>401</code> or <code>402</code>). </td></tr>
+<tr><td> <code>l402_dry_run_would_allow_total</code> </td><td> Shadow-mode requests that <em>would</em> have been allowed (<code>200</code>). </td></tr>
+<tr><td> <code>l402_dry_run_rate_limited_total</code> </td><td> Shadow-mode requests that would have hit <code>l402_invoice_rate_limit</code> — challenge synthesis was skipped. </td></tr>
+<tr><td> <code>l402_dry_run_challenge_errors_total</code> </td><td> Shadow-mode requests where challenge synthesis failed (e.g. LN backend unreachable). </td></tr>
+<tr><td> <code>l402_dry_run_price_msat_sum</code> </td><td> Sum of msat prices evaluated in shadow mode. Pair with <code>_requests_total</code> to derive an average price. </td></tr>
+</tbody></table>
+<a class="header" href="./dry-run.html#useful-promql" id="useful-promql"><h3>Useful PromQL</h3></a>
+<pre><code class="language-promql"># Fraction of traffic that would be blocked if you flipped enforcement on:
+rate(l402_dry_run_would_block_total[5m])
+/
+rate(l402_dry_run_requests_total[5m])
+
+# Average price served by shadow mode (msat):
+rate(l402_dry_run_price_msat_sum[5m])
+/
+rate(l402_dry_run_requests_total[5m])
+
+# Challenge-synthesis error rate — a signal that your LN backend is flaky:
+rate(l402_dry_run_challenge_errors_total[5m])
+</code></pre>
+<blockquote>
+<p>The endpoint has no built-in authentication. Restrict it at the Nginx
+level with <code>allow</code>/<code>deny</code>, an auth subrequest, or a firewall rule —
+exposing it publicly leaks traffic volume and pricing details.</p>
+</blockquote>
+<hr />
+<a class="header" href="./dry-run.html#suggested-rollout-recipe" id="suggested-rollout-recipe"><h2>Suggested rollout recipe</h2></a>
+<ol>
+<li>Deploy with <code>l402 on;</code> and <code>l402_dry_run on;</code> on the target location.
+Leave existing routes untouched.</li>
+<li>Scrape <code>/metrics</code> for 24–48 hours. Confirm:
+<ul>
+<li><code>l402_dry_run_challenge_errors_total</code> stays flat (LN backend healthy).</li>
+<li><code>l402_dry_run_would_allow_total / l402_dry_run_requests_total</code> matches
+the fraction of paying clients you expect.</li>
+<li><code>l402_dry_run_price_msat_sum</code> divided by request count matches your
+posted price.</li>
+</ul>
+</li>
+<li>Sample the JSON log for a few high-volume paths and confirm
+<code>price_source</code> is what you configured (<code>static</code> vs <code>dynamic</code>).</li>
+<li>Remove <code>l402_dry_run on;</code> (or set it to <code>off</code>). Reload Nginx. The
+location now enforces.</li>
+</ol>
+<p>If you ever need to revert, setting <code>l402_dry_run on;</code> again immediately
+disables enforcement without touching upstream code paths.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="./logging.html" class="mobile-nav-chapters previous" title="Previous chapter">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="./manifest.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./logging.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./manifest.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>

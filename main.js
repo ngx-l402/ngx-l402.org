@@ -49,7 +49,7 @@
   if (!slots.length) return;
   const fmt = (n) =>
     n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "") + "k" : String(n);
-  fetch("https://api.github.com/repos/DhananjayPurohit/ngx_l402", {
+  fetch("https://api.github.com/repos/ngx-l402/ngx-l402", {
     headers: { Accept: "application/vnd.github+json" },
   })
     .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -71,6 +71,126 @@
   const onScroll = () => bar.classList.toggle("is-stuck", window.scrollY > 4);
   onScroll();
   window.addEventListener("scroll", onScroll, { passive: true });
+})();
+
+/* ---- dark / light theme toggle ---- */
+(() => {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  const root = document.documentElement;
+  const apply = (t) => {
+    root.setAttribute("data-theme", t);
+    try { localStorage.setItem("theme", t); } catch (_) {}
+    btn.textContent = t === "dark" ? "☀️" : "🌙";
+    btn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  };
+  apply(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
+  btn.addEventListener("click", () =>
+    apply(root.getAttribute("data-theme") === "dark" ? "light" : "dark")
+  );
+})();
+
+/* ---- live L402 demo widget ---- */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const go = $("ld-go");
+  if (!go) return;
+
+  const state = { macaroon: null, invoice: null };
+  const out = $("ld-out"), pay = $("ld-pay");
+
+  const show = (html, cls) => {
+    out.hidden = false;
+    out.innerHTML = cls ? `<span class="${cls}">${html}</span>` : html;
+  };
+
+  const parseChallenge = (header) => {
+    const fields = {};
+    for (const m of (header || "").matchAll(/(\w+)\s*=\s*"([^"]*)"/g)) fields[m[1]] = m[2];
+    const macaroon = fields.macaroon || fields.token;
+    if (!macaroon || !fields.invoice) return null;
+    return { macaroon, invoice: fields.invoice };
+  };
+
+  const target = () => $("ld-gw").value.replace(/\/$/, "") + $("ld-path").value;
+
+  const request = async () => {
+    pay.hidden = true;
+    show("→ GET " + target());
+    let resp;
+    try {
+      resp = await fetch(target());
+    } catch (e) {
+      show(
+        "Gateway unreachable. Start one locally in 60 seconds:\n" +
+        "docker run -d -p 8000:8000 -e LN_CLIENT_TYPE=LNURL -e LNURL_ADDRESS=you@getalby.com " +
+        "-e ROOT_KEY=$(openssl rand -hex 32) ghcr.io/dhananjaypurohit/ngx_l402:latest\n" +
+        "then set the gateway above to http://localhost:8000", "warn");
+      return;
+    }
+    if (resp.status === 200) {
+      show("<span class='ok'>200 OK</span> — this route isn't paywalled.\n\n" + (await resp.text()).slice(0, 500));
+      return;
+    }
+    if (resp.status !== 402) {
+      show("Unexpected HTTP " + resp.status, "warn");
+      return;
+    }
+    const parsed = parseChallenge(resp.headers.get("WWW-Authenticate"));
+    if (!parsed) {
+      show("Got 402, but the browser can't read WWW-Authenticate.\nThe gateway must send: Access-Control-Expose-Headers: WWW-Authenticate", "warn");
+      return;
+    }
+    state.macaroon = parsed.macaroon;
+    state.invoice = parsed.invoice;
+    show("<span class='warn'>402 Payment Required</span> — invoice received. Pay it, then unlock.");
+    $("ld-invoice").textContent = parsed.invoice;
+    $("ld-wallet").href = "lightning:" + parsed.invoice;
+    pay.hidden = false;
+  };
+
+  const retry = async (preimage) => {
+    show("→ retrying with proof of payment…");
+    let resp;
+    try {
+      resp = await fetch(target(), { headers: { Authorization: `L402 ${state.macaroon}:${preimage}` } });
+    } catch (e) {
+      show("Network error on retry: " + e, "warn");
+      return;
+    }
+    const body = (await resp.text()).slice(0, 500);
+    if (resp.status === 200) {
+      pay.hidden = true;
+      show("<span class='ok'>🔓 200 OK — unlocked. That's the whole loop: 402 → pay → proof → content.</span>\n\n" + body);
+    } else {
+      show("Retry returned HTTP " + resp.status + "\n" + body, "warn");
+    }
+  };
+
+  go.addEventListener("click", request);
+  $("ld-webln").addEventListener("click", async () => {
+    if (!window.webln) {
+      show("No WebLN wallet found (try the Alby extension) — or pay with any wallet and paste the preimage below.", "warn");
+      return;
+    }
+    try {
+      await window.webln.enable();
+      const res = await window.webln.sendPayment(state.invoice);
+      if (!res || !res.preimage) throw new Error("wallet returned no preimage");
+      await retry(res.preimage);
+    } catch (e) {
+      show("WebLN: " + (e.message || e), "warn");
+    }
+  });
+  $("ld-unlock").addEventListener("click", () => {
+    const p = $("ld-preimage").value.trim().toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(p)) {
+      show("Preimage must be 64 hex characters.", "warn");
+      return;
+    }
+    retry(p);
+  });
+  $("ld-copy").addEventListener("click", () => navigator.clipboard.writeText(state.invoice || ""));
 })();
 
 /* ---- nav scroll-spy ---- */

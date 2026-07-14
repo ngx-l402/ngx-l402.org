@@ -1,0 +1,199 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Building from Source - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html" class="active"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./building.html#building-from-source" id="building-from-source"><h1>Building from Source</h1></a>
+<a class="header" href="./building.html#prerequisites" id="prerequisites"><h2>Prerequisites</h2></a>
+<p>Install required system dependencies:</p>
+<pre><code class="language-bash">sudo apt-get install -y \
+  build-essential \
+  clang \
+  libclang-dev \
+  libc6-dev \
+  zlib1g-dev \
+  pkg-config \
+  libssl-dev \
+  protobuf-compiler \
+  nginx
+</code></pre>
+<p>Install Rust and Cargo:</p>
+<pre><code class="language-bash">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code></pre>
+<hr />
+<a class="header" href="./building.html#build-steps" id="build-steps"><h2>Build Steps</h2></a>
+<ol>
+<li>Clone the repository:</li>
+</ol>
+<pre><code class="language-bash">git clone https://github.com/DhananjayPurohit/ngx_l402.git
+cd ngx_l402
+</code></pre>
+<ol start="2">
+<li>Download Nginx source and build the module:</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>Important</strong>: You must download the exact Nginx source code matching your target version and set the <code>NGINX_SOURCE_DIR</code> environment variable before building.</p>
+</blockquote>
+<pre><code class="language-bash"># Example for Nginx 1.28.0
+curl -fsSL http://nginx.org/download/nginx-1.28.0.tar.gz -o nginx.tar.gz
+tar -xzf nginx.tar.gz
+cd nginx-1.28.0
+./configure --with-compat
+cd ..
+export NGINX_SOURCE_DIR=$(pwd)/nginx-1.28.0
+
+cargo build --release --features export-modules
+</code></pre>
+<p>The compiled module will be at <code>target/release/libngx_l402_lib.so</code>.</p>
+<ol start="3">
+<li>Copy to your Nginx modules directory:</li>
+</ol>
+<pre><code class="language-bash">sudo cp target/release/libngx_l402_lib.so /etc/nginx/modules/
+</code></pre>
+<ol start="4">
+<li>Follow the remaining <a href="./install-manual.md">manual installation steps</a>.</li>
+</ol>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="./cashu.html" class="mobile-nav-chapters previous" title="Previous chapter">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="./logging.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./cashu.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./logging.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Lightning Network - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html" class="active"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./lightning.html#lightning-network-payments" id="lightning-network-payments"><h1>Lightning Network Payments</h1></a>
+<p>ngx_l402 implements the <a href="https://docs.lightning.engineering/the-lightning-network/l402">L402 protocol</a>, enabling API monetization via <strong>Lightning Network payments</strong>. When a client hits a protected endpoint without a valid token, the module responds with <code>402 Payment Required</code> and a Lightning invoice. The client pays the invoice, receives a preimage, and presents it alongside the macaroon to gain access.</p>
+<hr />
+<a class="header" href="./lightning.html#supported-backends" id="supported-backends"><h2>Supported Backends</h2></a>
+<p>Configure the backend via the <code>LN_CLIENT_TYPE</code> environment variable:</p>
+<table><thead><tr><th> <code>LN_CLIENT_TYPE</code> </th><th> Description </th></tr></thead><tbody>
+<tr><td> <code>LND</code> </td><td> Lightning Network Daemon — direct gRPC connection </td></tr>
+<tr><td> <code>LNC</code> </td><td> Lightning Node Connect — remote LND via mailbox (no open port needed) </td></tr>
+<tr><td> <code>CLN</code> </td><td> Core Lightning </td></tr>
+<tr><td> <code>ECLAIR</code> </td><td> Eclair node </td></tr>
+<tr><td> <code>LNURL</code> </td><td> Lightning Network URL — delegate invoice generation to an LNURL server </td></tr>
+<tr><td> <code>NWC</code> </td><td> Nostr Wallet Connect </td></tr>
+<tr><td> <code>BOLT12</code> </td><td> Reusable Lightning Offers (BOLT12) </td></tr>
+</tbody></table>
+<p>See <a href="./config-env-vars.md">Environment Variables</a> for the full list of per-backend settings.</p>
+<hr />
+<a class="header" href="./lightning.html#payment-flow" id="payment-flow"><h2>Payment Flow</h2></a>
+<ol>
+<li>Client requests a protected endpoint (no auth header).</li>
+<li>Module generates a macaroon and requests an invoice from the configured Lightning backend.</li>
+<li>Module responds <code>402 Payment Required</code> with:
+<pre><code>WWW-Authenticate: L402 macaroon=&quot;&lt;macaroon&gt;&quot;, invoice=&quot;&lt;bolt11&gt;&quot;
+</code></pre>
+</li>
+<li>Client pays the invoice and obtains the <strong>preimage</strong>.</li>
+<li>Client retries with:
+<pre><code>Authorization: L402 &lt;macaroon&gt;:&lt;preimage&gt;
+</code></pre>
+</li>
+<li>Module verifies the macaroon + preimage and returns <code>200 OK</code>.</li>
+</ol>
+<hr />
+<a class="header" href="./lightning.html#authorization-header-format" id="authorization-header-format"><h2>Authorization Header Format</h2></a>
+<p>Two formats are accepted:</p>
+<table><thead><tr><th> Format </th><th> Header value </th><th> When to use </th></tr></thead><tbody>
+<tr><td> <strong>Classic</strong> </td><td> <code>L402 &lt;macaroon&gt;:&lt;preimage_hex&gt;</code> </td><td> Client has the preimage (standard wallet flow) </td></tr>
+<tr><td> <strong>Auto-detect</strong> </td><td> <code>L402 &lt;macaroon&gt;</code> </td><td> Server queries the node; no preimage needed from client </td></tr>
+</tbody></table>
+<blockquote>
+<p>The preimage in the classic format must be the <strong>32-byte (256-bit) hex-encoded payment preimage</strong> corresponding to the invoice's <code>payment_hash</code>.</p>
+</blockquote>
+<hr />
+<a class="header" href="./lightning.html#auto-detect-payment-server-side-settlement-lookup" id="auto-detect-payment-server-side-settlement-lookup"><h2>Auto-Detect Payment (Server-Side Settlement Lookup)</h2></a>
+<p>With <strong>auto-detect</strong> enabled the client only needs to send the macaroon — no preimage required. The module queries your Lightning node directly to check whether the invoice is settled and retrieves the preimage from the node.</p>
+<a class="header" href="./lightning.html#enabling-auto-detect" id="enabling-auto-detect"><h3>Enabling auto-detect</h3></a>
+<p>Add <code>l402_auto_detect_payment on</code> to any <code>location {}</code> block:</p>
+<pre><code class="language-nginx">location /protected {
+    l402                         on;
+    l402_amount_msat_default     10000;
+    l402_macaroon_timeout        0;
+    l402_auto_detect_payment     on;   # ← enables server-side lookup
+}
+</code></pre>
+<p>All boolean directives (<code>l402</code>, <code>l402_auto_detect_payment</code>) accept: <code>on</code> / <code>off</code> / <code>true</code> / <code>false</code> / <code>1</code> / <code>0</code> / <code>yes</code> / <code>no</code> (case-insensitive).</p>
+<a class="header" href="./lightning.html#client-flow-with-auto-detect-enabled" id="client-flow-with-auto-detect-enabled"><h3>Client flow with auto-detect enabled</h3></a>
+<ol>
+<li>Client requests a protected endpoint → receives <code>402 Payment Required</code> with a BOLT-11 invoice.</li>
+<li>Client pays the invoice (no preimage handling needed).</li>
+<li>Client retries with just the macaroon:
+<pre><code>Authorization: L402 &lt;macaroon&gt;
+</code></pre>
+</li>
+<li>Module extracts the <code>payment_hash</code> from the macaroon identifier, queries the node, and — if the invoice is settled — uses the returned preimage to verify the macaroon signature.</li>
+<li>On success the module returns <code>200 OK</code>. If the invoice is not yet settled, it returns <code>402 Payment Required</code>.</li>
+</ol>
+<a class="header" href="./lightning.html#preimage-caching-redis" id="preimage-caching-redis"><h3>Preimage caching (Redis)</h3></a>
+<p>When Redis is configured (<code>REDIS_URL</code>), settled preimages are cached under the key <code>l402:settled:&lt;payment_hash_hex&gt;</code>. Subsequent requests for the same payment hash are served from the cache, avoiding repeated node round-trips.</p>
+<a class="header" href="./lightning.html#backend-support-matrix" id="backend-support-matrix"><h3>Backend support matrix</h3></a>
+<table><thead><tr><th> <code>LN_CLIENT_TYPE</code> </th><th> Auto-detect supported </th><th> Notes </th></tr></thead><tbody>
+<tr><td> <code>LND</code> </td><td> ✅ </td><td> Uses <code>LookupInvoice</code> gRPC </td></tr>
+<tr><td> <code>CLN</code> / <code>BOLT12</code> </td><td> ✅ </td><td> Uses <code>listinvoices</code> JSON-RPC over unix socket </td></tr>
+<tr><td> <code>ECLAIR</code> </td><td> ✅ </td><td> Uses <code>POST /getreceivedinfo</code> REST API </td></tr>
+<tr><td> <code>LNC</code> </td><td> ❌ </td><td> LNC mailbox does not expose <code>LookupInvoice</code> </td></tr>
+<tr><td> <code>NWC</code> </td><td> ❌ </td><td> <code>lookup_invoice</code> is optional in NIP-47 </td></tr>
+<tr><td> <code>LNURL</code> </td><td> ❌ </td><td> Remote wallet — no server-side query API </td></tr>
+</tbody></table>
+<blockquote>
+<p>[!NOTE]
+Even when <code>l402_auto_detect_payment on</code> is set, the classic <code>L402 &lt;macaroon&gt;:&lt;preimage&gt;</code> format is still accepted — auto-detect only activates when the client omits the preimage.</p>
+</blockquote>
+<hr />
+<a class="header" href="./lightning.html#wallet-compatibility" id="wallet-compatibility"><h2>Wallet Compatibility</h2></a>
+<blockquote>
+<p>[!WARNING]
+Some wallets (e.g. <a href="https://www.walletofsatoshi.com/">Wallet of Satoshi</a>) return <strong>48-byte non-standard preimages</strong>, which are <strong>not compatible</strong> with this module. Use a wallet that returns a standard 32-byte preimage.</p>
+</blockquote>
+<hr />
+<a class="header" href="./lightning.html#also-supported-cashu-ecash" id="also-supported-cashu-ecash"><h2>Also Supported: Cashu eCash</h2></a>
+<p>In addition to Lightning, the module accepts <strong>Cashu eCash tokens</strong> via the <code>X-Cashu</code> header as an alternative payment method. See <a href="./cashu.md">Cashu eCash Support</a> for details.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="./config-multi-tenant.html" class="mobile-nav-chapters previous" title="Previous chapter">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="./cashu.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./config-multi-tenant.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./cashu.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>

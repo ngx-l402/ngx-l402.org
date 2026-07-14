@@ -5,3 +5,9 @@ node_modules/
 dist/
 .cache/
 *.log
+
+# Python (examples)
+__pycache__/
+*.pyc
+.env
+.venv/

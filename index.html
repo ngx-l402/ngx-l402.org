@@ -1,741 +1,1363 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<title>ngx-l402 · Accept Lightning payments in front of any HTTP API</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="description" content="An open-source nginx module that puts a Lightning paywall in front of any HTTP API. Speaks L402 today, MPP-Lightning next." />
-<meta name="theme-color" content="#fbfaf7" />
-<link rel="canonical" href="https://ngx-l402.org/" />
+  <meta charset="utf-8" />
+  <title>ngx-l402 · Accept Lightning payments in front of any HTTP API</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description"
+    content="An open-source nginx module that puts a Lightning paywall in front of any HTTP API — L402, two lines of nginx config, eight payment backends, non-custodial." />
+  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#14150e" media="(prefers-color-scheme: dark)" />
+  <script>
+    /* set theme before first paint to avoid a flash */
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t !== "light" && t !== "dark")
+          t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="canonical" href="https://ngx-l402.org/" />
 
-<meta property="og:title" content="ngx-l402 · Lightning paywall as an nginx module" />
-<meta property="og:description" content="Accept Lightning payments in front of any HTTP API. One nginx directive. L402 + MPP-Lightning." />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://ngx-l402.org/" />
-<meta property="og:site_name" content="ngx-l402" />
-<meta property="og:image" content="https://ngx-l402.org/logo.png" />
-<meta property="og:image:alt" content="ngx-l402 — a Lightning paywall as an nginx module" />
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="ngx-l402 · Lightning paywall as an nginx module" />
-<meta name="twitter:description" content="Accept Lightning payments in front of any HTTP API. One nginx directive. L402 + MPP-Lightning." />
-<meta name="twitter:image" content="https://ngx-l402.org/logo.png" />
+  <meta property="og:title" content="ngx-l402 · Lightning paywall as an nginx module" />
+  <meta property="og:description"
+    content="Accept Lightning payments in front of any HTTP API. Two lines of nginx config, eight payment backends, non-custodial. L402." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ngx-l402.org/" />
+  <meta property="og:site_name" content="ngx-l402" />
+  <meta property="og:image" content="https://ngx-l402.org/logo.png" />
+  <meta property="og:image:alt" content="ngx-l402 — a Lightning paywall as an nginx module" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ngx-l402 · Lightning paywall as an nginx module" />
+  <meta name="twitter:description"
+    content="Accept Lightning payments in front of any HTTP API. Two lines of nginx config, eight payment backends, non-custodial. L402." />
+  <meta name="twitter:image" content="https://ngx-l402.org/logo.png" />
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
 
-<link rel="icon" type="image/png" href="logo.png" />
+  <link rel="icon" type="image/png" href="logo.png" />
 
-<style>
-  /* =====================================================================
+  <style>
+    /* =====================================================================
      ngx_l402 landing — editorial / docs-style.
      Single accent, warm near-white, code blocks as the centerpiece.
      ===================================================================== */
-  :root {
-    --bg:      #fbfaf7;
-    --bg-2:    #f4f2ed;
-    --bg-3:    #efece4;
-    --ink:     #16170f;
-    --ink-2:   #3a3a30;
-    --ink-3:   #6b6b5c;
-    --ink-4:   #9a9a8a;
-    --rule:    #e4e0d6;
-    --rule-2:  #d9d5c8;
-    --accent:  #2d5bff;
-    --accent-ink: #1a3fd1;
-    --accent-tint: rgba(45,91,255,0.06);
-    --yellow:  #e8a317;
-    --green:   #4caf50;
+    :root {
+      --bg: #fbfaf7;
+      --bg-2: #f4f2ed;
+      --bg-3: #efece4;
+      --ink: #16170f;
+      --ink-2: #3a3a30;
+      --ink-3: #6b6b5c;
+      --ink-4: #9a9a8a;
+      --rule: #e4e0d6;
+      --rule-2: #d9d5c8;
+      --accent: #2d5bff;
+      --accent-ink: #1a3fd1;
+      --accent-tint: rgba(45, 91, 255, 0.06);
+      --yellow: #e8a317;
+      --green: #4caf50;
 
-    --code-bg: #11130b;
-    --code-bg-2: #161811;
-    --code-ink: #e6e4d6;
-    --code-mute:#7e7e6a;
-    --code-key: #ffd479;
-    --code-str: #b6d77a;
-    --code-num: #d4a3ff;
-    --code-com: #6a6a55;
-    --code-fn:  #7fc4ff;
-    --code-warn:#ff8a4c;
-    --code-ok:  #9fd97a;
-    --code-hl:  #ffe066;
+      --code-bg: #11130b;
+      --code-bg-2: #161811;
+      --code-ink: #e6e4d6;
+      --code-mute: #7e7e6a;
+      --code-key: #ffd479;
+      --code-str: #b6d77a;
+      --code-num: #d4a3ff;
+      --code-com: #6a6a55;
+      --code-fn: #7fc4ff;
+      --code-warn: #ff8a4c;
+      --code-ok: #9fd97a;
+      --code-hl: #ffe066;
 
-    --pad-x: 64px;
-    --pad-y: 80px;
-    --max-prose: 64ch;
+      --pad-x: 64px;
+      --pad-y: 80px;
+      --max-prose: 64ch;
 
-    --shadow-card: 0 1px 0 rgba(20,20,10,.04), 0 12px 30px -16px rgba(20,20,10,.2);
-    --shadow-soft: 0 1px 0 rgba(20,20,10,.04), 0 2px 10px -4px rgba(20,20,10,.08);
-  }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Inter', -apple-system, system-ui, sans-serif;
-    font-size: 16px; line-height: 1.5;
-    font-feature-settings: 'ss01','cv11';
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
-  a { color: inherit; text-decoration: none; }
-  a:hover { color: var(--accent-ink); }
-  a.link { color: var(--accent); }
-  a.link:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-feature-settings: 'ss02','ss05','zero'; }
-  .muted { color: var(--ink-3); }
-  h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; letter-spacing: -0.015em; }
-
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-
-  .skip {
-    position: absolute; left: 8px; top: -40px;
-    background: var(--ink); color: var(--bg);
-    padding: 8px 12px; border-radius: 6px;
-    font-size: 13px; z-index: 100;
-    transition: top .15s;
-  }
-  .skip:focus { top: 8px; color: var(--bg); }
-
-  .arrow {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.9em;
-    opacity: 0.7; display: inline-block;
-  }
-
-  /* ============================ TOPBAR ============================ */
-  .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    border-bottom: 1px solid var(--rule);
-    background: rgba(251,250,247,0.82);
-    backdrop-filter: saturate(180%) blur(12px);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
-    transition: border-color .2s, box-shadow .2s;
-  }
-  .topbar.is-stuck {
-    border-bottom-color: var(--rule-2);
-    box-shadow: 0 1px 0 rgba(20,20,10,.03), 0 6px 20px -16px rgba(20,20,10,.35);
-  }
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .topbar { background: var(--bg); }
-  }
-  .topbar__inner {
-    max-width: 1308px;
-    margin: 0 auto;
-    padding: 12px var(--pad-x);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-  }
-  .topbar__brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    color: var(--ink);
-  }
-  .topbar__brand:hover { color: var(--ink); }
-  .topbar__logo {
-    height: 40px;
-    width: auto;
-    display: block;
-  }
-  .topbar__wordmark {
-    font-family: 'JetBrains Mono', monospace;
-    font-feature-settings: 'ss02','ss05','zero';
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-  }
-  .topbar__nav {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13.5px;
-  }
-  .topbar__link {
-    padding: 7px 10px;
-    border-radius: 6px;
-    color: var(--ink-2);
-    transition: color .12s, background .12s;
-  }
-  .topbar__link:hover { color: var(--ink); background: var(--bg-2); }
-  .topbar__link.is-active { color: var(--accent); background: var(--accent-tint); }
-  @media (max-width: 560px) {
-    .topbar__nav .topbar__link { display: none; }
-  }
-  .topbar__gh {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--rule-2);
-    color: var(--ink);
-    background: var(--bg);
-    transition: border-color .12s;
-  }
-  .topbar__gh:hover { border-color: var(--ink-3); color: var(--ink); }
-  .topbar__stars {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding-left: 8px; margin-left: 2px;
-    border-left: 1px solid var(--rule-2);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; color: var(--ink-3);
-  }
-  .topbar__stars::before {
-    content: "";
-    width: 12px; height: 12px;
-    display: inline-block;
-    background-color: var(--yellow);
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.169L12 18.896l-7.335 3.867 1.401-8.169L.132 9.21l8.2-1.192z'/%3E%3C/svg%3E") center / contain no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.169L12 18.896l-7.335 3.867 1.401-8.169L.132 9.21l8.2-1.192z'/%3E%3C/svg%3E") center / contain no-repeat;
-  }
-
-  /* ============================ MAIN ============================ */
-  .main {
-    min-width: 0;
-    max-width: 1308px;
-    margin: 0 auto;
-    padding: 0 var(--pad-x);
-  }
-  .sec {
-    padding: var(--pad-y) 0;
-    border-bottom: 1px solid var(--rule);
-    max-width: 1180px;
-    scroll-margin-top: 84px;
-  }
-  .sec:last-of-type { border-bottom: 0; }
-  .sec--hero { padding-top: 72px; }
-
-  .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
-  .brand__logo {
-    height: 28px; width: auto;
-    display: block;
-    border-radius: 5px;
-  }
-  .brand__name { font-size: 15px; letter-spacing: -0.01em; }
-
-  .sectionlabel {
-    display: inline-flex; align-items: center; gap: 8px;
-    flex-wrap: nowrap; white-space: nowrap;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11.5px;
-    color: var(--accent);
-    letter-spacing: 0.02em;
-    margin-bottom: 18px;
-  }
-  .sectionlabel > * { flex: 0 0 auto; white-space: nowrap; }
-  .sectionlabel .num { font-weight: 600; }
-  .sectionlabel .dot { color: var(--ink-4); }
-  .sectionlabel .name { color: var(--ink-2); }
-
-  .crumb {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11.5px;
-    color: var(--ink-4);
-    margin-bottom: 28px;
-  }
-  .crumb b { color: var(--ink-2); font-weight: 500; }
-  .crumb .sep { margin: 0 6px; color: var(--ink-4); }
-
-  .h1 {
-    font-size: 56px; line-height: 1.04;
-    letter-spacing: -0.025em;
-    max-width: 18ch;
-    text-wrap: balance;
-    margin-bottom: 22px;
-  }
-  .h1 u {
-    text-decoration: none;
-    background-image: linear-gradient(transparent 60%, var(--accent-tint) 60%);
-    border-bottom: 3px solid var(--accent);
-    padding-bottom: 2px;
-  }
-  .h2 {
-    font-size: 34px; line-height: 1.12;
-    letter-spacing: -0.022em;
-    max-width: 22ch;
-    text-wrap: balance;
-    margin-bottom: 16px;
-  }
-  .lede {
-    font-size: 17px; line-height: 1.55;
-    color: var(--ink-2);
-    max-width: var(--max-prose);
-    text-wrap: pretty;
-    margin: 0 0 28px;
-  }
-  .lede--narrow { max-width: 56ch; }
-
-  .ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 36px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 11px 16px; border-radius: 7px;
-    font-size: 14.5px; font-weight: 500; line-height: 1;
-    cursor: pointer; border: 0;
-    transition: transform .08s, box-shadow .12s, background .12s, color .12s, border-color .12s;
-  }
-  .btn:hover { transform: translateY(-1px); }
-  .btn:active { transform: translateY(0); }
-  .btn--primary {
-    background: var(--accent); color: #fff;
-    box-shadow: 0 1px 0 rgba(0,0,0,.1), 0 6px 18px -10px rgba(45,91,255,.55);
-  }
-  .btn--primary:hover {
-    background: var(--accent-ink); color: #fff;
-    box-shadow: 0 1px 0 rgba(0,0,0,.1), 0 12px 24px -12px rgba(45,91,255,.6);
-  }
-  .btn--secondary {
-    background: var(--bg); color: var(--ink);
-    border: 1px solid var(--rule-2);
-  }
-  .btn--secondary:hover { border-color: var(--ink-3); box-shadow: var(--shadow-soft); }
-  .btn--ghost { background: transparent; color: var(--ink-2); }
-  .btn--ghost:hover { color: var(--ink); transform: none; }
-
-  /* ============================ HERO ============================ */
-  .hero-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
-    gap: 56px;
-    align-items: start;
-  }
-  .hero-copy { min-width: 0; }
-  .hero-copy .h1 { margin-bottom: 20px; }
-  .hero-copy .ctas { margin-bottom: 22px; }
-  .hero-code { align-self: start; margin-top: 0; }
-  .herotrust {
-    display: flex; flex-wrap: wrap; align-items: center;
-    gap: 7px 12px;
-    font-size: 12px; color: var(--ink-3);
-    padding-top: 18px;
-    border-top: 1px solid var(--rule);
-  }
-  .herotrust > span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-  .herotrust .dot { color: var(--ink-4); }
-  .herotrust b { color: var(--ink-2); font-weight: 500; }
-  @media (max-width: 980px) {
-    .hero-grid { grid-template-columns: 1fr; gap: 30px; }
-    .hero-copy .h1 { max-width: 16ch; }
-  }
-  .herocode { margin-top: 8px; }
-  .herocode__cap {
-    margin: 14px 4px 0;
-    font-size: 12px; color: var(--ink-3);
-  }
-  .herocode__cap b { color: var(--ink); font-weight: 500; }
-
-  /* ============================ CODE CARDS ============================ */
-  .codecard {
-    background: var(--code-bg);
-    color: var(--code-ink);
-    border-radius: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13.5px; line-height: 1.7;
-    box-shadow: var(--shadow-card);
-    overflow: hidden;
-    position: relative;
-    margin: 0;
-  }
-  .codecard--dense { font-size: 12.5px; }
-  .codecard .titlebar {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px;
-    background: var(--code-bg-2);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    color: var(--code-mute); font-size: 11.5px;
-  }
-  .codecard .dots { display: inline-flex; gap: 6px; }
-  .codecard .dots i {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #2a2c20; display: inline-block;
-  }
-  .codecard .file { color: #c8c5b3; }
-  .codecard .meta {
-    margin-left: auto;
-    font-size: 10.5px; color: var(--code-mute);
-    letter-spacing: 0.04em;
-  }
-  .codecard .copy {
-    margin-left: auto;
-    background: transparent;
-    color: var(--code-mute);
-    padding: 4px 10px;
-    border-radius: 5px;
-    border: 1px solid rgba(255,255,255,0.08);
-    font: inherit; font-size: 10.5px;
-    cursor: pointer;
-    transition: color .12s, border-color .12s, background .12s;
-  }
-  .codecard .meta + .copy { margin-left: 12px; }
-  .codecard .copy:hover { color: #fff; border-color: rgba(255,255,255,0.18); }
-  .codecard .copy.copied { color: var(--code-ok); border-color: rgba(159,217,122,0.3); }
-  .codecard .body { padding: 18px 22px; overflow-x: auto; }
-  .codecard pre {
-    margin: 0; white-space: pre;
-    font: inherit;
-  }
-
-  .k  { color: var(--code-key); }
-  .s  { color: var(--code-str); }
-  .n  { color: var(--code-num); }
-  .c  { color: var(--code-com); font-style: italic; }
-  .f  { color: var(--code-fn); }
-  .w  { color: var(--code-warn); }
-  .ok { color: var(--code-ok); }
-  .b  { color: #fff; }
-  .hl { color: var(--code-hl); background: rgba(255,224,102,.08); padding: 0 3px; border-radius: 2px; }
-
-  /* ============================ DEMO ============================ */
-  .demo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-    align-items: stretch;
-  }
-  .demo-grid .codecard { display: flex; flex-direction: column; }
-  .demo-grid .codecard .body { flex: 1; }
-  .demo-note {
-    margin-top: 16px;
-    font-size: 12px;
-    text-align: right;
-  }
-
-  /* ============================ WHY ============================ */
-  .whygrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-    margin-top: 24px;
-  }
-  .whycard {
-    background: var(--bg);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    padding: 24px 22px 22px;
-    display: flex; flex-direction: column; gap: 14px;
-    transition: border-color .15s, transform .15s, box-shadow .15s;
-  }
-  .whycard:hover {
-    border-color: var(--ink-4);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-card);
-  }
-  .whycard__tag {
-    font-size: 11px; color: var(--ink-4);
-    letter-spacing: 0.04em;
-  }
-  .whycard__title {
-    font-size: 19px; line-height: 1.25;
-    letter-spacing: -0.015em;
-    text-wrap: balance;
-  }
-  .whycard__body p {
-    margin: 0;
-    font-size: 14.5px;
-    line-height: 1.6;
-    color: var(--ink-2);
-    text-wrap: pretty;
-  }
-  .whycard__body p + p { margin-top: 10px; }
-
-  .bgrid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    margin-top: 4px;
-  }
-  .bgrid__cell {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 8px;
-    border: 1px solid var(--rule);
-    border-radius: 5px;
-    font-size: 12px;
-    background: var(--bg);
-  }
-  .bgrid__beta {
-    font-family: 'JetBrains Mono', monospace; font-size: 9px;
-    color: var(--yellow); background: rgba(232,163,23,0.1);
-    padding: 1px 4px; border-radius: 3px;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-
-  .proto-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-  .proto {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 10px;
-    border: 1px solid var(--rule);
-    border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    background: var(--bg);
-  }
-  .proto b { color: var(--ink); font-weight: 600; }
-  .proto--next b::before {
-    content: "";
-    display: inline-block;
-    width: 6px; height: 6px; margin-right: 6px;
-    border-radius: 50%;
-    background: var(--yellow);
-    vertical-align: 1px;
-  }
-
-  /* ============================ QUICKSTART ============================ */
-  .quick-cmd { margin: 24px 0 36px; max-width: 900px; }
-  .steplist {
-    list-style: none; padding: 0; margin: 0;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
-    max-width: 900px;
-  }
-  .step {
-    display: flex; gap: 14px; align-items: flex-start;
-    padding-top: 18px;
-    border-top: 1px solid var(--rule);
-  }
-  .step__n {
-    flex: 0 0 auto;
-    width: 28px; height: 28px;
-    display: grid; place-items: center;
-    border-radius: 6px;
-    background: var(--accent-tint);
-    color: var(--accent);
-    font-size: 11px; font-weight: 600;
-  }
-  .step__title { font-size: 15px; margin-bottom: 6px; letter-spacing: -0.01em; }
-  .step__body { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.55; text-wrap: pretty; }
-  .quick-foot {
-    margin-top: 36px;
-    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
-    font-size: 13px;
-  }
-
-  /* ============================ FOOTER ============================ */
-  .footer {
-    padding: 60px 0 28px;
-    border-top: 1px solid var(--rule);
-    max-width: 1180px;
-  }
-  .footer__grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 32px;
-    margin-bottom: 40px;
-  }
-  .footer__col { display: flex; flex-direction: column; gap: 10px; }
-  .footer__col h6 {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10.5px; font-weight: 500;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--ink-4); margin: 0 0 4px;
-  }
-  .footer__col a { font-size: 13.5px; color: var(--ink-2); }
-  .footer__col a:hover { color: var(--accent-ink); }
-  .footer__blurb { font-size: 13px; color: var(--ink-3); line-height: 1.6; margin: 4px 0 0; max-width: 38ch; }
-  .footer__bottom {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-top: 22px;
-    border-top: 1px solid var(--rule);
-    font-size: 11.5px; color: var(--ink-3);
-  }
-
-  /* hidden copy source */
-  .copy-src { display: none; }
-
-  /* ============================ RESPONSIVE ============================ */
-  @media (max-width: 1180px) {
-    :root { --pad-x: 40px; }
-    .h1 { font-size: 48px; }
-    .h2 { font-size: 28px; }
-    .demo-grid { grid-template-columns: 1fr; }
-    .whygrid { grid-template-columns: 1fr; }
-    .steplist { grid-template-columns: 1fr; }
-    .footer__grid { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 820px) {
-    :root { --pad-x: 24px; --pad-y: 56px; }
-    .h1 { font-size: 38px; }
-    .ctas .btn { padding: 10px 14px; }
-    .footer__grid { grid-template-columns: 1fr; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
+      --shadow-card: 0 1px 0 rgba(20, 20, 10, .04), 0 12px 30px -16px rgba(20, 20, 10, .2);
+      --shadow-soft: 0 1px 0 rgba(20, 20, 10, .04), 0 2px 10px -4px rgba(20, 20, 10, .08);
     }
-  }
-</style>
+
+    /* Dark theme — soft warm-dark (not pure black); code panels stay dark and
+       are set off from the page by contrast + a hairline border. */
+    :root[data-theme="dark"] {
+      --bg: #1b1c14;
+      --bg-2: #25261b;
+      --bg-3: #2e2f22;
+      --ink: #eceadd;
+      --ink-2: #c8c5b6;
+      --ink-3: #989586;
+      --ink-4: #706e5f;
+      --rule: #343527;
+      --rule-2: #43442f;
+      --accent: #7f97ff;
+      --accent-ink: #a6bbff;
+      --accent-tint: rgba(127, 151, 255, 0.13);
+      --green: #6fce7a;
+      --shadow-card: 0 1px 0 rgba(0, 0, 0, .3), 0 12px 30px -16px rgba(0, 0, 0, .55);
+      --shadow-soft: 0 1px 0 rgba(0, 0, 0, .3), 0 2px 10px -4px rgba(0, 0, 0, .4);
+    }
+    :root[data-theme="dark"] .topbar { background: rgba(27, 28, 20, 0.82); }
+    :root[data-theme="dark"] .live input { background: var(--bg-2); }
+    /* code panels: recessed + defined edge so they read as distinct in dark */
+    :root[data-theme="dark"] .codecard,
+    :root[data-theme="dark"] .live__out { border: 1px solid var(--rule-2); }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      font-feature-settings: 'ss01', 'cv11';
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: var(--accent-ink);
+    }
+
+    a.link {
+      color: var(--accent);
+    }
+
+    a.link:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-feature-settings: 'ss02', 'ss05', 'zero';
+    }
+
+    .muted {
+      color: var(--ink-3);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .skip {
+      position: absolute;
+      left: 8px;
+      top: -40px;
+      background: var(--ink);
+      color: var(--bg);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      z-index: 100;
+      transition: top .15s;
+    }
+
+    .skip:focus {
+      top: 8px;
+      color: var(--bg);
+    }
+
+    .arrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9em;
+      opacity: 0.7;
+      display: inline-block;
+    }
+
+    /* ============================ TOPBAR ============================ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--rule);
+      background: rgba(251, 250, 247, 0.82);
+      backdrop-filter: saturate(180%) blur(12px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .topbar.is-stuck {
+      border-bottom-color: var(--rule-2);
+      box-shadow: 0 1px 0 rgba(20, 20, 10, .03), 0 6px 20px -16px rgba(20, 20, 10, .35);
+    }
+
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .topbar {
+        background: var(--bg);
+      }
+    }
+
+    .topbar__inner {
+      max-width: 1308px;
+      margin: 0 auto;
+      padding: 12px var(--pad-x);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar__brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      color: var(--ink);
+    }
+
+    .topbar__brand:hover {
+      color: var(--ink);
+    }
+
+    .topbar__logo {
+      height: 40px;
+      width: auto;
+      display: block;
+    }
+
+    .topbar__wordmark {
+      font-family: 'JetBrains Mono', monospace;
+      font-feature-settings: 'ss02', 'ss05', 'zero';
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    .topbar__nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
+    }
+
+    .topbar__link {
+      padding: 7px 10px;
+      border-radius: 6px;
+      color: var(--ink-2);
+      transition: color .12s, background .12s;
+    }
+
+    .topbar__link:hover {
+      color: var(--ink);
+      background: var(--bg-2);
+    }
+
+    .topbar__link.is-active {
+      color: var(--accent);
+      background: var(--accent-tint);
+    }
+
+    @media (max-width: 560px) {
+      .topbar__nav .topbar__link {
+        display: none;
+      }
+    }
+
+    .topbar__gh {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--rule-2);
+      color: var(--ink);
+      background: var(--bg);
+      transition: border-color .12s;
+    }
+
+    .topbar__theme {
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 15px;
+      line-height: 1;
+      transition: background .12s;
+    }
+    .topbar__theme:hover { background: var(--bg-2); }
+
+    .topbar__gh:hover {
+      border-color: var(--ink-3);
+      color: var(--ink);
+    }
+
+    .topbar__stars {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding-left: 8px;
+      margin-left: 2px;
+      border-left: 1px solid var(--rule-2);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+
+    .topbar__stars::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      background-color: var(--yellow);
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.169L12 18.896l-7.335 3.867 1.401-8.169L.132 9.21l8.2-1.192z'/%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.401 8.169L12 18.896l-7.335 3.867 1.401-8.169L.132 9.21l8.2-1.192z'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+
+    /* ============================ MAIN ============================ */
+    .main {
+      min-width: 0;
+      max-width: 1308px;
+      margin: 0 auto;
+      padding: 0 var(--pad-x);
+    }
+
+    .sec {
+      padding: var(--pad-y) 0;
+      border-bottom: 1px solid var(--rule);
+      max-width: 1180px;
+      scroll-margin-top: 84px;
+    }
+
+    .sec:last-of-type {
+      border-bottom: 0;
+    }
+
+    .sec--hero {
+      padding-top: 72px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .brand__logo {
+      height: 28px;
+      width: auto;
+      display: block;
+      border-radius: 5px;
+    }
+
+    .brand__name {
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+
+    .sectionlabel {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      margin-bottom: 18px;
+    }
+
+    .sectionlabel>* {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    .sectionlabel .num {
+      font-weight: 600;
+    }
+
+    .sectionlabel .dot {
+      color: var(--ink-4);
+    }
+
+    .sectionlabel .name {
+      color: var(--ink-2);
+    }
+
+    .crumb {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--ink-4);
+      margin-bottom: 28px;
+    }
+
+    .crumb b {
+      color: var(--ink-2);
+      font-weight: 500;
+    }
+
+    .crumb .sep {
+      margin: 0 6px;
+      color: var(--ink-4);
+    }
+
+    .h1 {
+      font-size: 56px;
+      line-height: 1.04;
+      letter-spacing: -0.025em;
+      max-width: 18ch;
+      text-wrap: balance;
+      margin-bottom: 22px;
+    }
+
+    .h1 u {
+      text-decoration: none;
+      background-image: linear-gradient(transparent 60%, var(--accent-tint) 60%);
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 2px;
+    }
+
+    .h2 {
+      font-size: 34px;
+      line-height: 1.12;
+      letter-spacing: -0.022em;
+      max-width: 22ch;
+      text-wrap: balance;
+      margin-bottom: 16px;
+    }
+
+    .lede {
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--ink-2);
+      max-width: var(--max-prose);
+      text-wrap: pretty;
+      margin: 0 0 28px;
+    }
+
+    .lede--narrow {
+      max-width: 56ch;
+    }
+
+    .ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 7px;
+      font-size: 14.5px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+      border: 0;
+      transition: transform .08s, box-shadow .12s, background .12s, color .12s, border-color .12s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn--primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, .1), 0 6px 18px -10px rgba(45, 91, 255, .55);
+    }
+
+    .btn--primary:hover {
+      background: var(--accent-ink);
+      color: #fff;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, .1), 0 12px 24px -12px rgba(45, 91, 255, .6);
+    }
+
+    .btn--secondary {
+      background: var(--bg);
+      color: var(--ink);
+      border: 1px solid var(--rule-2);
+    }
+
+    .btn--secondary:hover {
+      border-color: var(--ink-3);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--ink-2);
+    }
+
+    .btn--ghost:hover {
+      color: var(--ink);
+      transform: none;
+    }
+
+    /* ============================ HERO ============================ */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+      gap: 56px;
+      align-items: start;
+    }
+
+    .hero-copy {
+      min-width: 0;
+    }
+
+    .hero-copy .h1 {
+      margin-bottom: 20px;
+    }
+
+    .hero-copy .ctas {
+      margin-bottom: 22px;
+    }
+
+    .hero-code {
+      align-self: start;
+      margin-top: 0;
+    }
+
+    .herotrust {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px 12px;
+      font-size: 12px;
+      color: var(--ink-3);
+      padding-top: 18px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .herotrust>span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .herotrust .dot {
+      color: var(--ink-4);
+    }
+
+    .herotrust b {
+      color: var(--ink-2);
+      font-weight: 500;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+
+      .hero-copy .h1 {
+        max-width: 16ch;
+      }
+    }
+
+    .herocode {
+      margin-top: 8px;
+    }
+
+    .herocode__cap {
+      margin: 14px 4px 0;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+
+    .herocode__cap b {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    /* ============================ CODE CARDS ============================ */
+    .codecard {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+      line-height: 1.7;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      position: relative;
+      margin: 0;
+    }
+
+    .codecard--dense {
+      font-size: 12.5px;
+    }
+
+    .codecard .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--code-bg-2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--code-mute);
+      font-size: 11.5px;
+    }
+
+    .codecard .dots {
+      display: inline-flex;
+      gap: 6px;
+    }
+
+    .codecard .dots i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2a2c20;
+      display: inline-block;
+    }
+
+    .codecard .file {
+      color: #c8c5b3;
+    }
+
+    .codecard .meta {
+      margin-left: auto;
+      font-size: 10.5px;
+      color: var(--code-mute);
+      letter-spacing: 0.04em;
+    }
+
+    .codecard .copy {
+      margin-left: auto;
+      background: transparent;
+      color: var(--code-mute);
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font: inherit;
+      font-size: 10.5px;
+      cursor: pointer;
+      transition: color .12s, border-color .12s, background .12s;
+    }
+
+    .codecard .meta+.copy {
+      margin-left: 12px;
+    }
+
+    .codecard .copy:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .codecard .copy.copied {
+      color: var(--code-ok);
+      border-color: rgba(159, 217, 122, 0.3);
+    }
+
+    .codecard .body {
+      padding: 18px 22px;
+      overflow-x: auto;
+    }
+
+    .codecard pre {
+      margin: 0;
+      white-space: pre;
+      font: inherit;
+    }
+
+    .k {
+      color: var(--code-key);
+    }
+
+    .s {
+      color: var(--code-str);
+    }
+
+    .n {
+      color: var(--code-num);
+    }
+
+    .c {
+      color: var(--code-com);
+      font-style: italic;
+    }
+
+    .f {
+      color: var(--code-fn);
+    }
+
+    .w {
+      color: var(--code-warn);
+    }
+
+    .ok {
+      color: var(--code-ok);
+    }
+
+    .b {
+      color: #fff;
+    }
+
+    .hl {
+      color: var(--code-hl);
+      background: rgba(255, 224, 102, .08);
+      padding: 0 3px;
+      border-radius: 2px;
+    }
+
+    /* ============================ DEMO ============================ */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .demo-grid .codecard {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .demo-grid .codecard .body {
+      flex: 1;
+    }
+
+    .demo-note {
+      margin-top: 16px;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    /* ============================ WHY ============================ */
+    .whygrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .whycard {
+      background: var(--bg);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 24px 22px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color .15s, transform .15s, box-shadow .15s;
+    }
+
+    .whycard:hover {
+      border-color: var(--ink-4);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card);
+    }
+
+    .whycard__tag {
+      font-size: 11px;
+      color: var(--ink-4);
+      letter-spacing: 0.04em;
+    }
+
+    .whycard__title {
+      font-size: 19px;
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+      text-wrap: balance;
+    }
+
+    .whycard__body p {
+      margin: 0;
+      font-size: 14.5px;
+      line-height: 1.6;
+      color: var(--ink-2);
+      text-wrap: pretty;
+    }
+
+    .whycard__body p+p {
+      margin-top: 10px;
+    }
+
+    .bgrid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .bgrid__cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      font-size: 12px;
+      background: var(--bg);
+    }
+
+    .proto-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .proto {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: var(--bg);
+    }
+
+    .proto b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .proto--next b::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: var(--yellow);
+      vertical-align: 1px;
+    }
+
+    /* ============================ QUICKSTART ============================ */
+    .quick-cmd {
+      margin: 24px 0 36px;
+      max-width: 900px;
+    }
+
+    .steplist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 900px;
+    }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding-top: 18px;
+      border-top: 1px solid var(--rule);
+    }
+
+    .step__n {
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: var(--accent-tint);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .step__title {
+      font-size: 15px;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .step__body {
+      margin: 0;
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.55;
+      text-wrap: pretty;
+    }
+
+    .quick-foot {
+      margin-top: 36px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+    }
+
+    /* ============================ FOOTER ============================ */
+    .footer {
+      padding: 60px 0 28px;
+      border-top: 1px solid var(--rule);
+      max-width: 1180px;
+    }
+
+    .footer__grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+
+    .footer__col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer__col h6 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      margin: 0 0 4px;
+    }
+
+    .footer__col a {
+      font-size: 13.5px;
+      color: var(--ink-2);
+    }
+
+    .footer__col a:hover {
+      color: var(--accent-ink);
+    }
+
+    .footer__blurb {
+      font-size: 13px;
+      color: var(--ink-3);
+      line-height: 1.6;
+      margin: 4px 0 0;
+      max-width: 38ch;
+    }
+
+    .footer__bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 22px;
+      border-top: 1px solid var(--rule);
+      font-size: 11.5px;
+      color: var(--ink-3);
+    }
+
+    /* hidden copy source */
+    .copy-src {
+      display: none;
+    }
+
+    /* ============================ COMPARISON ============================ */
+    .cmp-wrap {
+      overflow-x: auto;
+      margin-top: 24px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+    }
+    .cmp {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 720px;
+      font-size: 13.5px;
+    }
+    .cmp th, .cmp td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--rule);
+      vertical-align: top;
+    }
+    .cmp thead th {
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 600;
+      background: var(--bg-2);
+    }
+    .cmp tbody th {
+      font-weight: 500;
+      color: var(--ink-2);
+      white-space: nowrap;
+    }
+    .cmp td { color: var(--ink-2); }
+    /* Two tones only: strong header row, calm body. The ngx-l402 column is
+       highlighted purely by its background tint — no per-cell font colors. */
+    .cmp .self { background: var(--accent-tint); }
+    .cmp tr:last-child td, .cmp tr:last-child th { border-bottom: 0; }
+
+    /* ============================ FAQ ============================ */
+    .faq {
+      margin-top: 24px;
+      max-width: 820px;
+      border-top: 1px solid var(--rule);
+    }
+    .faq details { border-bottom: 1px solid var(--rule); }
+    .faq summary {
+      cursor: pointer;
+      padding: 16px 4px;
+      font-size: 15px;
+      font-weight: 500;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after {
+      content: "+";
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+    }
+    .faq details[open] summary::after { content: "\2013"; }
+    .faq details p {
+      margin: 0 4px 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink-2);
+      max-width: 70ch;
+    }
+
+    /* ============================ LIVE DEMO ============================ */
+    .live {
+      margin-top: 48px;
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 24px 22px;
+      background: var(--bg);
+      max-width: 900px;
+    }
+    .live__title { font-size: 19px; letter-spacing: -0.015em; margin-bottom: 6px; }
+    .live__sub { margin: 0 0 16px; font-size: 14px; color: var(--ink-2); max-width: 70ch; }
+    .live__row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .live input {
+      flex: 1 1 220px;
+      padding: 10px 12px;
+      border: 1px solid var(--rule-2);
+      border-radius: 7px;
+      font: inherit; font-size: 13.5px;
+      background: #fff; color: var(--ink);
+    }
+    .live input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+    .live__out {
+      font-size: 12.5px;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 8px;
+      padding: 14px 16px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 12px;
+    }
+    .live__out .ok { color: var(--code-ok); }
+    .live__out .warn { color: var(--code-warn); }
+    .live__invoice {
+      font-size: 11.5px;
+      word-break: break-all;
+      border: 1px dashed var(--rule-2);
+      border-radius: 7px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      color: var(--ink-2);
+    }
+
+    /* ============================ MORE FEATURES ============================ */
+    .more__title {
+      margin: 40px 0 0;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .more {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 36px;
+      max-width: 1000px;
+    }
+    .more p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+    .more b { color: var(--ink); font-weight: 600; }
+    @media (max-width: 820px) {
+      .more { grid-template-columns: 1fr; }
+    }
+
+    /* ============================ RESPONSIVE ============================ */
+    @media (max-width: 1180px) {
+      :root {
+        --pad-x: 40px;
+      }
+
+      .h1 {
+        font-size: 48px;
+      }
+
+      .h2 {
+        font-size: 28px;
+      }
+
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .whygrid {
+        grid-template-columns: 1fr;
+      }
+
+      .steplist {
+        grid-template-columns: 1fr;
+      }
+
+      .footer__grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 820px) {
+      :root {
+        --pad-x: 24px;
+        --pad-y: 56px;
+      }
+
+      .h1 {
+        font-size: 38px;
+      }
+
+      .ctas .btn {
+        padding: 10px 14px;
+      }
+
+      .footer__grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<a class="skip" href="#overview">Skip to content</a>
+  <a class="skip" href="#overview">Skip to content</a>
 
-<header class="topbar">
-  <div class="topbar__inner">
-    <a class="topbar__brand" href="#overview" aria-label="ngx-l402 home">
-      <img src="logo.png" alt="" class="topbar__logo" width="60" height="40" />
-      <span class="topbar__wordmark">ngx-l402</span>
-    </a>
-    <nav class="topbar__nav" aria-label="Primary">
-      <a class="topbar__link" href="#demo">Demo</a>
-      <a class="topbar__link" href="#why">Why</a>
-      <a class="topbar__link" href="#quickstart">Quickstart</a>
-      <a class="topbar__gh" href="https://github.com/DhananjayPurohit/ngx_l402" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
-        <svg width="14" height="14" aria-hidden="true"><use href="#i-gh" /></svg> GitHub
-        <span class="topbar__stars" data-stars hidden></span>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="topbar__brand" href="#overview" aria-label="ngx-l402 home">
+        <img src="logo.png" alt="" class="topbar__logo" width="60" height="40" />
+        <span class="topbar__wordmark">ngx-l402</span>
       </a>
-    </nav>
-  </div>
-</header>
-
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <symbol id="i-gh" viewBox="0 0 16 16">
-    <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-  </symbol>
-</svg>
-
-<main class="main" id="main">
-
-  <!-- 01 · Overview / Hero -->
-  <section id="overview" class="sec sec--hero" aria-labelledby="overview-h">
-    <div class="hero-grid">
-    <div class="hero-copy">
-    <div class="sectionlabel">
-      <span class="num">§ 01</span><span class="dot">·</span><span class="name">Overview</span>
+      <nav class="topbar__nav" aria-label="Primary">
+        <a class="topbar__link" href="#demo">Demo</a>
+        <a class="topbar__link" href="#cashu">Cashu</a>
+        <a class="topbar__link" href="#why">Why</a>
+        <a class="topbar__link" href="#compare">Compare</a>
+        <a class="topbar__link" href="#quickstart">Quickstart</a>
+        <a class="topbar__link" href="#faq">FAQ</a>
+        <a class="topbar__link" href="https://github.com/ngx-l402/ngx-l402.org/tree/main/examples" target="_blank"
+          rel="noopener noreferrer">Examples</a>
+        <a class="topbar__link" href="/docs/" target="_blank"
+          rel="noopener noreferrer">Docs</a>
+        <a class="topbar__link" href="https://gitworkshop.dev/npub1qnw27f2jsqvn05wzpd56m7ykgmepk57p0yrzw8fzc7lfhjkmjmqqmd9r6h/relay.ngit.dev/ngx-l402"
+          target="_blank" rel="noopener noreferrer" title="Code mirror on Nostr via ngit">Repo on ngit</a>
+        <button class="topbar__theme" id="theme-toggle" type="button" aria-label="Toggle dark mode">🌙</button>
+        <a class="topbar__gh" href="https://github.com/ngx-l402/ngx-l402" target="_blank"
+          rel="noopener noreferrer" aria-label="GitHub repository">
+          <svg width="14" height="14" aria-hidden="true">
+            <use href="#i-gh" />
+          </svg> GitHub
+          <span class="topbar__stars" data-stars hidden></span>
+        </a>
+      </nav>
     </div>
-    <h1 id="overview-h" class="h1">
-      Accept Lightning payments in front of <u>any HTTP API</u>.
-    </h1>
-    <p class="lede">
-      ngx-l402 is an open-source nginx module that puts a Lightning paywall
-      in front of any upstream — no API rewrite, no SDK. Speaks <span class="mono">L402</span>
-      (bLIP-26) today and <span class="mono">MPP-Lightning</span> (IETF
-      <span class="mono">draft-ryan-httpauth-payment</span>) next, both verifying the same
-      <span class="mono">sha256(preimage)</span> primitive on the same gateway.
-    </p>
-    <div class="ctas">
-      <a class="btn btn--primary" href="#quickstart">
-        Quickstart <span class="arrow">→</span>
-      </a>
-      <a class="btn btn--secondary" href="https://github.com/DhananjayPurohit/ngx_l402" target="_blank" rel="noopener noreferrer">
-        <svg width="14" height="14" aria-hidden="true"><use href="#i-gh" /></svg> View on GitHub
-      </a>
-    </div>
-    <div class="herotrust mono">
-      <span><b>MIT</b>-licensed</span><span class="dot">·</span>
-      <span>One nginx directive</span><span class="dot">·</span>
-      <span><b>8</b> Lightning backends</span><span class="dot">·</span>
-      <span>L402 + MPP-Lightning</span>
-    </div>
-    </div>
+  </header>
 
-    <div class="hero-code herocode">
-      <figure class="codecard">
-        <figcaption class="titlebar">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="file">/etc/nginx/conf.d/api.conf</span>
-          <button class="copy" type="button" aria-label="Copy /etc/nginx/conf.d/api.conf">copy</button>
-        </figcaption>
-        <div class="body">
-<pre><span class="c"># Put L402 in front of any upstream — no API rewrite.</span>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-gh" viewBox="0 0 16 16">
+      <path fill="currentColor"
+        d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+    </symbol>
+  </svg>
+
+  <main class="main" id="main">
+
+    <!-- 01 · Overview / Hero -->
+    <section id="overview" class="sec sec--hero" aria-labelledby="overview-h">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="sectionlabel">
+            <span class="num">01</span><span class="dot">·</span><span class="name">Overview</span>
+          </div>
+          <h1 id="overview-h" class="h1">
+            Accept Lightning payments in front of <u>any HTTP API</u>.
+          </h1>
+          <p class="lede">
+            ngx-l402 is an open-source nginx module that puts a Lightning paywall
+            in front of any upstream — no API rewrite, no SDK. It speaks
+            <span class="mono">L402</span> (bLIP-26), settles over the Lightning
+            Network you already run, and verifies every payment locally — you keep
+            custody of the sats.
+          </p>
+          <div class="ctas">
+            <a class="btn btn--primary" href="#quickstart">
+              Quickstart <span class="arrow">→</span>
+            </a>
+            <a class="btn btn--secondary" href="https://github.com/ngx-l402/ngx-l402" target="_blank"
+              rel="noopener noreferrer">
+              <svg width="14" height="14" aria-hidden="true">
+                <use href="#i-gh" />
+              </svg> View on GitHub
+            </a>
+          </div>
+          <div class="herotrust mono">
+            <span><b>MIT</b>-licensed</span><span class="dot">·</span>
+            <span>Two lines of nginx</span><span class="dot">·</span>
+            <span><b>8</b> payment backends</span><span class="dot">·</span>
+            <span>Non-custodial</span>
+          </div>
+        </div>
+
+        <div class="hero-code herocode">
+          <figure class="codecard">
+            <figcaption class="titlebar">
+              <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="file">/etc/nginx/conf.d/api.conf</span>
+              <button class="copy" type="button" aria-label="Copy /etc/nginx/conf.d/api.conf">copy</button>
+            </figcaption>
+            <div class="body">
+              <pre><span class="c"># Put L402 in front of any upstream — no API rewrite.</span>
 <span class="k">server</span> {
   <span class="k">listen</span> <span class="n">443</span> <span class="k">ssl</span>;
   <span class="k">server_name</span> <span class="s">api.example.com</span>;
 
   <span class="k">location</span> <span class="s">/v1/</span> {
-    <span class="k">l402</span>             <span class="s">on</span>;
-    <span class="k">l402_price</span>       <span class="n">1000</span>;          <span class="c"># sats per request</span>
-    <span class="k">l402_backend</span>     <span class="s">lnd</span>;
-    <span class="k">l402_lnd_host</span>    <span class="s">https://lnd.internal:8080</span>;
-    <span class="k">l402_macaroon</span>    <span class="s">/etc/lnd/invoice.macaroon</span>;
+    <span class="k">l402</span>                      <span class="s">on</span>;
+    <span class="k">l402_amount_msat_default</span>  <span class="n">1000000</span>;   <span class="c"># 1,000 sats / request</span>
+    <span class="k">l402_auto_detect_payment</span>  <span class="s">on</span>;        <span class="c"># client needn't echo the preimage</span>
 
-    <span class="k">proxy_pass</span>       <span class="s">http://upstream</span>;
+    <span class="k">proxy_pass</span>                <span class="s">http://upstream</span>;
   }
-}</pre>
-        </div>
-        <template class="copy-src"># Put L402 in front of any upstream — no API rewrite.
+}
+<span class="c"># Backend — LND · LNC · CLN · Eclair · LNURL · NWC · BOLT12 — is set via env vars.</span></pre>
+            </div>
+            <!-- prettier-ignore -->
+            <template class="copy-src"># Put L402 in front of any upstream — no API rewrite.
 server {
   listen 443 ssl;
   server_name api.example.com;
 
   location /v1/ {
-    l402             on;
-    l402_price       1000;          # sats per request
-    l402_backend     lnd;
-    l402_lnd_host    https://lnd.internal:8080;
-    l402_macaroon    /etc/lnd/invoice.macaroon;
+    l402                      on;
+    l402_amount_msat_default  1000000;   # 1,000 sats / request
+    l402_auto_detect_payment  on;        # client needn't echo the preimage
 
-    proxy_pass       http://upstream;
+    proxy_pass                http://upstream;
   }
-}</template>
-      </figure>
-      <p class="herocode__cap mono">
-        ↑ that block turns <b>api.example.com/v1/</b> into a 1,000-sat-per-request
-        Lightning endpoint. No application code touched.
+}
+# Backend — LND · LNC · CLN · Eclair · LNURL · NWC · BOLT12 — is set via env vars.</template>
+          </figure>
+          <p class="herocode__cap mono">
+            ↑ that block turns <b>api.example.com/v1/</b> into a 1,000-sat-per-request
+            Lightning endpoint. No application code touched.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 · Demo -->
+    <section id="demo" class="sec" aria-labelledby="demo-h">
+      <div class="sectionlabel">
+        <span class="num">02</span><span class="dot">·</span><span class="name">Demo</span>
+      </div>
+      <h2 id="demo-h" class="h2">How it works, in three requests.</h2>
+      <p class="lede lede--narrow">
+        L402 pairs two things: a macaroon (the access token) and a Lightning
+        preimage (proof of payment), tied together by
+        <span class="mono">sha256(preimage) == paymentHash</span>. The client —
+        a human, a script, an AI agent — hits the endpoint, pays the returned
+        invoice on Lightning, and retries with the macaroon and preimage. No
+        accounts, no API keys, no chain confirmations.
       </p>
-    </div>
-    </div>
-  </section>
+      <div class="demo-grid">
 
-  <!-- 02 · Demo -->
-  <section id="demo" class="sec" aria-labelledby="demo-h">
-    <div class="sectionlabel">
-      <span class="num">§ 02</span><span class="dot">·</span><span class="name">Demo</span>
-    </div>
-    <h2 id="demo-h" class="h2">How it works, in three requests.</h2>
-    <p class="lede lede--narrow">
-      The same primitive — <span class="mono">sha256(preimage) == paymentHash</span> —
-      drives both L402 and MPP-Lightning. The client (a human, a script, an
-      AI agent) hits the endpoint, pays the returned invoice on Lightning,
-      and retries with the preimage. No accounts, no API keys, no chain
-      confirmations.
-    </p>
-    <div class="demo-grid">
-
-      <figure class="codecard">
-        <figcaption class="titlebar">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="file">$ first request</span>
-          <span class="meta">01 · challenge</span>
-          <button class="copy" type="button" aria-label="Copy first request">copy</button>
-        </figcaption>
-        <div class="body">
-<pre><span class="c"># Hit the protected endpoint with no auth.</span>
+        <figure class="codecard">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">$ first request</span>
+            <span class="meta">01 · challenge</span>
+            <button class="copy" type="button" aria-label="Copy first request">copy</button>
+          </figcaption>
+          <div class="body">
+            <pre><span class="c"># Hit the protected endpoint with no auth.</span>
 <span class="f">$ curl</span> -i https://api.example.com/v1/chat
 
 <span class="w">HTTP/1.1 402 Payment Required</span>
 <span class="b">WWW-Authenticate</span>: L402 macaroon=<span class="s">"AGIAJEemVQUTEyNCR0exk7ek..."</span>,
                   invoice=<span class="s">"lnbc10u1p3xnhl2pp5..."</span>
-<span class="b">Content-Type</span>: application/json
-<span class="b">Cache-Control</span>: no-store
 
-{
-  "amount_sat": <span class="n">1000</span>,
-  "description": <span class="s">"chat.completions · 1 request"</span>,
-  "expires_at": <span class="s">"2026-05-21T18:04:11Z"</span>
-}</pre>
-        </div>
-        <template class="copy-src">curl -i https://api.example.com/v1/chat</template>
-      </figure>
+<span class="c"># The whole challenge lives in the WWW-Authenticate header:</span>
+<span class="c"># a macaroon (access token) + a BOLT-11 invoice to pay.</span></pre>
+          </div>
+          <template class="copy-src">curl -i https://api.example.com/v1/chat</template>
+        </figure>
 
-      <figure class="codecard">
-        <figcaption class="titlebar">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="file">$ pay invoice</span>
-          <span class="meta">02 · settle</span>
-          <button class="copy" type="button" aria-label="Copy pay invoice command">copy</button>
-        </figcaption>
-        <div class="body">
-<pre><span class="c"># Agent pays the invoice on its Lightning node.</span>
+        <figure class="codecard">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">$ pay invoice</span>
+            <span class="meta">02 · settle</span>
+            <button class="copy" type="button" aria-label="Copy pay invoice command">copy</button>
+          </figcaption>
+          <div class="body">
+            <pre><span class="c"># Agent pays the invoice on its Lightning node.</span>
 <span class="c"># Any of 8 backends works — LND shown here.</span>
 <span class="f">$ lncli</span> payinvoice \
   --pay_req=<span class="s">lnbc10u1p3xnhl2pp5...</span>
@@ -745,216 +1367,546 @@ server {
 <span class="ok">Status:</span> SUCCEEDED  <span class="c">·</span>  <span class="ok">Fee:</span> 0 sat  <span class="c">·</span>  <span class="ok">Hops:</span> 3
 
 <span class="c"># sha256(preimage) == paymentHash → proof of payment.</span>
-<span class="c"># Same primitive serves L402 and MPP-Lightning.</span></pre>
-        </div>
-        <template class="copy-src">lncli payinvoice --pay_req=lnbc10u1p3xnhl2...</template>
-      </figure>
+<span class="c"># Verified locally at the edge — no callback to any third party.</span></pre>
+          </div>
+          <template class="copy-src">lncli payinvoice --pay_req=lnbc10u1p3xnhl2...</template>
+        </figure>
 
-      <figure class="codecard">
-        <figcaption class="titlebar">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="file">$ retry with preimage</span>
-          <span class="meta">03 · 200 OK</span>
-          <button class="copy" type="button" aria-label="Copy retry with preimage command">copy</button>
-        </figcaption>
-        <div class="body">
-<pre><span class="c"># Repeat the request with macaroon + preimage.</span>
+        <figure class="codecard">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">$ retry with preimage</span>
+            <span class="meta">03 · 200 OK</span>
+            <button class="copy" type="button" aria-label="Copy retry with preimage command">copy</button>
+          </figcaption>
+          <div class="body">
+            <pre><span class="c"># Repeat the request with macaroon + preimage.</span>
 <span class="f">$ curl</span> -H <span class="s">"Authorization: L402 \</span>
 <span class="s">    $MACAROON:$PREIMAGE"</span> \
   https://api.example.com/v1/chat
 
 <span class="ok">HTTP/1.1 200 OK</span>
 <span class="b">Content-Type</span>: application/json
-<span class="b">X-L402-Settled</span>: <span class="s">"1000 sat"</span>
 
 {
   "reply": <span class="s">"hello, agent."</span>,
   "model": <span class="s">"gpt-4o-mini"</span>,
   "tokens": <span class="n">42</span>
 }</pre>
+          </div>
+          <template class="copy-src">curl -H "Authorization: L402 $MACAROON:$PREIMAGE" https://api.example.com/v1/chat</template>
+        </figure>
+
+      </div>
+      <div class="demo-note mono">
+        <span class="muted">// settles over Lightning · no chain confirmations, no accounts</span>
+      </div>
+
+      <div class="live" id="try">
+        <h3 class="live__title">⚡ Try it live</h3>
+        <p class="live__sub">
+          Run the real 402 → pay → unlock loop from your browser. Start the
+          <a class="link" href="#quickstart">quickstart</a> container and hit
+          Request — or point the widget at any ngx-l402 gateway you can reach.
+          <span class="muted">(Hosted demo endpoint coming soon.)</span>
+        </p>
+        <div class="live__row">
+          <input id="ld-gw" class="mono" value="https://demo.ngx-l402.org" aria-label="Gateway URL" />
+          <input id="ld-path" class="mono" value="/protected" style="flex:0 1 150px;" aria-label="Protected path" />
+          <button id="ld-go" class="btn btn--primary" type="button">Request →</button>
         </div>
-        <template class="copy-src">curl -H "Authorization: L402 $MACAROON:$PREIMAGE" \
-  https://api.example.com/v1/chat</template>
-      </figure>
-
-    </div>
-    <div class="demo-note mono">
-      <span class="muted">// settlement: median 280 ms, p99 1.4 s · no chain confirmations</span>
-    </div>
-  </section>
-
-  <!-- 03 · Why -->
-  <section id="why" class="sec" aria-labelledby="why-h">
-    <div class="sectionlabel">
-      <span class="num">§ 03</span><span class="dot">·</span><span class="name">Why ngx-l402</span>
-    </div>
-    <h2 id="why-h" class="h2">Three reasons it lives at the edge.</h2>
-    <div class="whygrid">
-
-      <article class="whycard">
-        <div class="whycard__tag mono">01 · drop-in</div>
-        <h3 class="whycard__title">One nginx directive, no API rewrite.</h3>
-        <div class="whycard__body">
-          <p>
-            Two lines in your existing nginx config wrap any upstream — no SDK to
-            import, no application code to touch, no language lock-in. The diff
-            fits in one commit, and reviews like any other reverse-proxy change.
-          </p>
-        </div>
-      </article>
-
-      <article class="whycard">
-        <div class="whycard__tag mono">02 · multi-backend</div>
-        <h3 class="whycard__title">Eight Lightning backends, one config line.</h3>
-        <div class="whycard__body">
-          <p>
-            Point ngx-l402 at the Lightning infrastructure you already run.
-            Swap backends without touching your application — change one
-            directive and reload nginx.
-          </p>
-          <div class="bgrid">
-            <div class="bgrid__cell"><span class="mono">LND</span></div>
-            <div class="bgrid__cell"><span class="mono">CLN</span></div>
-            <div class="bgrid__cell"><span class="mono">Eclair</span></div>
-            <div class="bgrid__cell"><span class="mono">LNC</span></div>
-            <div class="bgrid__cell"><span class="mono">LNURL</span></div>
-            <div class="bgrid__cell"><span class="mono">NWC</span></div>
-            <div class="bgrid__cell"><span class="mono">BOLT12</span></div>
-            <div class="bgrid__cell"><span class="mono">Cashu</span><span class="bgrid__beta">beta</span></div>
+        <div id="ld-out" class="live__out mono" hidden></div>
+        <div id="ld-pay" hidden>
+          <div id="ld-invoice" class="live__invoice mono"></div>
+          <div class="live__row">
+            <button id="ld-webln" class="btn btn--primary" type="button">Pay with WebLN</button>
+            <a id="ld-wallet" class="btn btn--secondary" href="#">Open in wallet</a>
+            <button id="ld-copy" class="btn btn--secondary" type="button">Copy invoice</button>
+          </div>
+          <div class="live__row">
+            <input id="ld-preimage" class="mono" placeholder="…or paste the 64-hex preimage after paying with any wallet" />
+            <button id="ld-unlock" class="btn btn--secondary" type="button">Unlock</button>
           </div>
         </div>
-      </article>
+      </div>
+    </section>
 
-      <article class="whycard">
-        <div class="whycard__tag mono">03 · two protocols</div>
-        <h3 class="whycard__title">L402 today, MPP-Lightning next.</h3>
-        <div class="whycard__body">
-          <p>
-            Speaks <span class="mono">L402</span> (Lightning Labs bLIP-26) today. The
-            upcoming release adds <span class="mono">MPP-Lightning</span>, the Lightning
-            method of the IETF Machine Payments Protocol — both verify the
-            same primitive, so the same Lightning backend serves both.
-          </p>
-          <div class="proto-pills">
-            <span class="proto"><b>L402</b> <span class="muted">bLIP-26 · live</span></span>
-            <span class="proto proto--next"><b>MPP-Lightning</b> <span class="muted">draft-ryan-httpauth-payment · next</span></span>
+    <!-- 03 · Cashu -->
+    <section id="cashu" class="sec" aria-labelledby="cashu-h">
+      <div class="sectionlabel">
+        <span class="num">03</span><span class="dot">·</span><span class="name">Cashu eCash</span>
+      </div>
+      <h2 id="cashu-h" class="h2">Prefer privacy? Skip the invoice — pay with Cashu.</h2>
+      <p class="lede lede--narrow">
+        L402 is interactive: challenge, pay, retry. <b>Cashu is bearer money</b> —
+        the client attaches an ecash token to the request itself and gets the
+        resource in a single round trip. Tokens are blind-signed by the mint,
+        so the payment can't be linked back to the payer.
+      </p>
+      <div class="herocode">
+        <figure class="codecard">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">$ pay with ecash — one request</span>
+            <button class="copy" type="button" aria-label="Copy Cashu request">copy</button>
+          </figcaption>
+          <div class="body">
+<pre><span class="c"># No invoice round-trip. Attach a bearer token via X-Cashu.</span>
+<span class="f">$ curl</span> -H <span class="s">"X-Cashu: cashuApGFtdWh0dHBzOi8vbWlu..."</span> \
+  https://api.example.com/v1/chat
+
+<span class="ok">HTTP/1.1 200 OK</span>
+<span class="b">Content-Type</span>: application/json
+
+<span class="c"># The gateway verified the token — offline in P2PK mode (NUT-12 DLEQ),</span>
+<span class="c"># or via a mint swap in standard mode — and proxied upstream.</span></pre>
           </div>
-        </div>
-      </article>
+          <template class="copy-src">curl -H "X-Cashu: cashuA..." https://api.example.com/v1/chat</template>
+        </figure>
+      </div>
+      <div class="cmp-wrap" style="margin-top:28px;">
+        <table class="cmp">
+          <thead>
+            <tr><th>&nbsp;</th><th>L402 · Lightning invoice</th><th class="self">Cashu · ecash token</th></tr>
+          </thead>
+          <tbody>
+            <tr><th>Round trips</th><td>2 — challenge → pay → retry</td><td class="self">1 — the token rides the request</td></tr>
+            <tr><th>Client holds</th><td>a Lightning wallet</td><td class="self">bearer tokens from a mint</td></tr>
+            <tr><th>Proof of payment</th><td>macaroon + preimage</td><td class="self">the token itself (optionally P2PK-locked to your gateway)</td></tr>
+            <tr><th>Privacy</th><td>invoice visible to the paying node</td><td class="self">blind-signed — payment can't be linked to the payer</td></tr>
+            <tr><th>Gateway verification</th><td>local hash check</td><td class="self">offline DLEQ check (P2PK) or mint swap (standard)</td></tr>
+            <tr><th>Replay protection</th><td>spent preimages in Redis</td><td class="self">spent tokens in Redis</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ctas" style="margin-top:24px;margin-bottom:0;">
+        <a class="btn btn--secondary" href="/docs/cashu.html" target="_blank" rel="noopener noreferrer">
+          Cashu setup docs <span class="arrow" style="transform:translateY(-1px)">↗</span>
+        </a>
+      </div>
+      <p class="demo-note mono" style="text-align:left;">
+        <span class="muted">// enable: CASHU_ECASH_SUPPORT=true · whitelist mints in production · P2PK mode for high traffic</span>
+      </p>
+    </section>
 
-    </div>
-  </section>
+    <!-- 04 · Why -->
+    <section id="why" class="sec" aria-labelledby="why-h">
+      <div class="sectionlabel">
+        <span class="num">04</span><span class="dot">·</span><span class="name">Why ngx-l402</span>
+      </div>
+      <h2 id="why-h" class="h2">Three reasons it lives at the edge.</h2>
+      <div class="whygrid">
 
-  <!-- 04 · Quickstart -->
-  <section id="quickstart" class="sec" aria-labelledby="quickstart-h">
-    <div class="sectionlabel">
-      <span class="num">§ 04</span><span class="dot">·</span><span class="name">Quickstart</span>
-    </div>
-    <h2 id="quickstart-h" class="h2">Run the gateway in 60 seconds.</h2>
-    <p class="lede lede--narrow">
-      Pre-built container, one docker command, no dependencies beyond a
-      Lightning node you can reach. (For local testing, point it at a
-      regtest LND or a Cashu mint.)
-    </p>
-    <div class="quick-cmd">
-      <figure class="codecard">
-        <figcaption class="titlebar">
-          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="file">$ run the gateway</span>
-          <button class="copy" type="button" aria-label="Copy docker run command">copy</button>
-        </figcaption>
-        <div class="body">
-<pre><span class="f">$ docker</span> run --rm -p <span class="n">8080</span>:<span class="n">80</span> \
-  -v <span class="s">$(pwd)/nginx.conf:/etc/nginx/conf.d/api.conf</span> \
-  -v <span class="s">$(pwd)/invoice.macaroon:/etc/lnd/invoice.macaroon:ro</span> \
-  <span class="s">ghcr.io/ngx-l402/ngx-l402:1.2.5</span>
+        <article class="whycard">
+          <div class="whycard__tag mono">01 · drop-in</div>
+          <h3 class="whycard__title">Two lines of nginx, no API rewrite.</h3>
+          <div class="whycard__body">
+            <p>
+              Two lines in your existing nginx config wrap any upstream — no SDK to
+              import, no application code to touch, no language lock-in. The diff
+              fits in one commit, and reviews like any other reverse-proxy change.
+            </p>
+          </div>
+        </article>
 
-<span class="c"># Gateway listens on :8080. Point your client at it.</span>
-<span class="c"># Mount your own nginx.conf + Lightning credentials.</span></pre>
-        </div>
-        <template class="copy-src">docker run --rm -p 8080:80 \
-  -v $(pwd)/nginx.conf:/etc/nginx/conf.d/api.conf \
-  -v $(pwd)/invoice.macaroon:/etc/lnd/invoice.macaroon:ro \
-  ghcr.io/ngx-l402/ngx-l402:1.2.5</template>
-      </figure>
-    </div>
-    <ol class="steplist">
-      <li class="step">
-        <span class="step__n mono">01</span>
-        <div>
-          <h4 class="step__title">Configure &amp; run</h4>
-          <p class="step__body">
-            Drop a <span class="mono">nginx.conf</span> with one <span class="mono">l402</span>-enabled
-            location into the container. The image bundles nginx, the module,
-            and clients for all 8 backends.
-          </p>
-        </div>
-      </li>
-      <li class="step">
-        <span class="step__n mono">02</span>
-        <div>
-          <h4 class="step__title">Hit the endpoint</h4>
-          <p class="step__body">
-            Any request to a protected route comes back as <span class="mono">402 Payment
-            Required</span> with a Lightning invoice in the
-            <span class="mono">WWW-Authenticate</span> header.
-          </p>
-        </div>
-      </li>
-      <li class="step">
-        <span class="step__n mono">03</span>
-        <div>
-          <h4 class="step__title">Pay → preimage → 200</h4>
-          <p class="step__body">
-            Pay the invoice from any Lightning wallet. Retry with the preimage
-            in the <span class="mono">Authorization</span> header — the gateway verifies
-            locally and proxies through to your upstream.
-          </p>
-        </div>
-      </li>
-    </ol>
-    <div class="quick-foot">
-      <a class="btn btn--secondary" href="https://github.com/DhananjayPurohit/ngx_l402/blob/main/docs/install-docker.md" target="_blank" rel="noopener noreferrer">
-        Full quickstart guide <span class="arrow" style="transform:translateY(-1px)">↗</span>
-      </a>
-      <span class="muted">or read the <a href="https://github.com/DhananjayPurohit/ngx_l402/blob/main/docs/lightning.md" class="link" target="_blank" rel="noopener noreferrer">backend reference</a>, <a href="https://github.com/DhananjayPurohit/ngx_l402/blob/main/docs/config-env-vars.md" class="link" target="_blank" rel="noopener noreferrer">directive reference</a>, <a href="https://github.com/DhananjayPurohit/ngx_l402/releases" class="link" target="_blank" rel="noopener noreferrer">release notes</a>.</span>
-    </div>
-  </section>
+        <article class="whycard">
+          <div class="whycard__tag mono">02 · multi-backend</div>
+          <h3 class="whycard__title">Eight payment backends, one config line.</h3>
+          <div class="whycard__body">
+            <p>
+              Point ngx-l402 at the Lightning infrastructure you already run.
+              Swap backends without touching your application — change one
+              environment variable and restart nginx.
+            </p>
+            <div class="bgrid">
+              <div class="bgrid__cell"><span class="mono">LND</span></div>
+              <div class="bgrid__cell"><span class="mono">CLN</span></div>
+              <div class="bgrid__cell"><span class="mono">Eclair</span></div>
+              <div class="bgrid__cell"><span class="mono">LNC</span></div>
+              <div class="bgrid__cell"><span class="mono">LNURL</span></div>
+              <div class="bgrid__cell"><span class="mono">NWC</span></div>
+              <div class="bgrid__cell"><span class="mono">BOLT12</span></div>
+              <div class="bgrid__cell"><span class="mono">Cashu</span></div>
+            </div>
+          </div>
+        </article>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer__grid">
-      <div class="footer__col">
-        <div class="brand">
-          <img src="logo.png" alt="" class="brand__logo" width="42" height="28" />
-          <span class="brand__name mono">ngx-l402</span>
-        </div>
-        <p class="footer__blurb">
-          A Lightning paywall as an nginx module. Open-source, MIT-licensed.
+        <article class="whycard">
+          <div class="whycard__tag mono">03 · non-custodial</div>
+          <h3 class="whycard__title">Self-hosted, and you keep the sats.</h3>
+          <div class="whycard__body">
+            <p>
+              Payments settle straight to the Lightning node or address you
+              control — no middleman, no platform cut, no third party holding
+              funds or metering your traffic. Every preimage is verified locally
+              at the edge, so nothing about a request leaves your box.
+            </p>
+            <div class="proto-pills">
+              <span class="proto"><b>L402</b> <span class="muted">bLIP-26 · live</span></span>
+              <span class="proto"><b>Cashu</b> <span class="muted">private ecash</span></span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+      <h3 class="more__title">Also in the box</h3>
+      <div class="more">
+        <p><b>Dynamic pricing</b> — change any route's price with one Redis <span class="mono">SET</span>; picked up on the next request, no nginx reload. <a class="link" href="/docs/config-redis.html">docs</a></p>
+        <p><b>Dry-run (shadow) mode</b> — evaluate the paywall on live production traffic, log what <em>would</em> happen, block nothing. <a class="link" href="/docs/dry-run.html">docs</a></p>
+        <p><b>Prometheus metrics</b> — an <span class="mono">l402_metrics</span> scrape endpoint with counters aggregated across all nginx workers. <a class="link" href="/docs/dry-run.html">docs</a></p>
+        <p><b>Multi-tenant payouts</b> — per-route LNURL addresses (static or via Redis), so each tenant is paid to their own wallet. <a class="link" href="/docs/config-multi-tenant.html">docs</a></p>
+        <p><b>Pay once, keep access</b> — <span class="mono">l402_indefinite_access</span> turns one payment into a subscription-style credential. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
+        <p><b>Expiring access</b> — <span class="mono">l402_macaroon_timeout</span> time-boxes credentials for metered plans. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
+        <p><b>Auto-detect payment</b> — the server confirms settlement with your node, so clients needn't handle preimages (LND · CLN · BOLT12 · Eclair). <a class="link" href="/docs/lightning.html">docs</a></p>
+        <p><b>gRPC upstreams</b> — the same paywall works in front of <span class="mono">grpc_pass</span> services over HTTP/2. <a class="link" href="/docs/">docs</a></p>
+      </div>
+    </section>
+
+    <!-- 05 · Agent discovery -->
+    <section id="agents" class="sec" aria-labelledby="agents-h">
+      <div class="sectionlabel">
+        <span class="num">05</span><span class="dot">·</span><span class="name">Agent discovery</span>
+      </div>
+      <h2 id="agents-h" class="h2">Self-describing APIs for autonomous agents.</h2>
+      <p class="lede lede--narrow">
+        ngx-l402 publishes a <span class="mono">/.well-known/l402-services</span>
+        manifest — the agent-era equivalent of <span class="mono">robots.txt</span>.
+        A client given only a hostname can discover which routes are paid, what
+        they cost, and which payment backends are accepted, then pay and
+        proceed — no API keys, no out-of-band integration, no human in the loop.
+      </p>
+      <div class="herocode">
+        <figure class="codecard codecard--dense">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">$ curl https://api.example.com/.well-known/l402-services</span>
+            <button class="copy" type="button" aria-label="Copy manifest request">copy</button>
+          </figcaption>
+          <div class="body">
+            <pre>{
+  <span class="b">"version"</span>: <span class="s">"1"</span>,
+  <span class="b">"service"</span>: { <span class="b">"name"</span>: <span class="s">"Example API"</span>, <span class="b">"description"</span>: <span class="s">"Stock data, paid per request."</span> },
+  <span class="b">"payment_methods"</span>: [
+    { <span class="b">"type"</span>: <span class="s">"lightning"</span>, <span class="b">"backend"</span>: <span class="s">"LNURL"</span>, <span class="b">"address"</span>: <span class="s">"api@getalby.com"</span> },
+    { <span class="b">"type"</span>: <span class="s">"cashu"</span>, <span class="b">"mints"</span>: [<span class="s">"https://mint.minibits.cash"</span>], <span class="b">"p2pk_supported"</span>: <span class="n">true</span> }
+  ],
+  <span class="b">"routes"</span>: [
+    { <span class="b">"path"</span>: <span class="s">"/v1/chat"</span>, <span class="b">"price"</span>: { <span class="b">"type"</span>: <span class="s">"static"</span>, <span class="b">"amount_msat"</span>: <span class="n">1000000</span> } }
+  ]
+}</pre>
+          </div>
+          <template class="copy-src">curl https://api.example.com/.well-known/l402-services</template>
+        </figure>
+        <p class="herocode__cap mono">
+          ↑ one directive — <b>l402_manifest;</b> — makes the whole API surface
+          discoverable: routes, prices, and payment backends, in one JSON document.
         </p>
       </div>
-      <div class="footer__col">
-        <h6>Project</h6>
-        <a href="https://github.com/DhananjayPurohit/ngx_l402" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a href="https://github.com/DhananjayPurohit/ngx_l402/releases" target="_blank" rel="noopener noreferrer">Releases</a>
-        <a href="https://github.com/DhananjayPurohit/ngx_l402/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+      <div class="ctas" style="margin-top:28px;margin-bottom:0;">
+        <a class="btn btn--secondary"
+          href="https://github.com/ngx-l402/ngx-l402.org/tree/main/examples/agent-pays-per-call" target="_blank"
+          rel="noopener noreferrer">
+          Run the autonomous agent demo <span class="arrow" style="transform:translateY(-1px)">↗</span>
+        </a>
       </div>
-      <div class="footer__col">
-        <h6>Reference</h6>
-        <a href="https://github.com/DhananjayPurohit/ngx_l402/blob/main/docs/config-env-vars.md" target="_blank" rel="noopener noreferrer">Directive reference</a>
-        <a href="https://github.com/DhananjayPurohit/ngx_l402/blob/main/docs/lightning.md" target="_blank" rel="noopener noreferrer">Backend reference</a>
-        <a href="https://github.com/lightninglabs/L402" target="_blank" rel="noopener noreferrer">L402 spec ↗</a>
-        <a href="https://datatracker.ietf.org/doc/draft-ryan-httpauth-payment/" target="_blank" rel="noopener noreferrer">MPP draft (IETF) ↗</a>
+    </section>
+
+    <!-- 05 · Quickstart -->
+    <section id="quickstart" class="sec" aria-labelledby="quickstart-h">
+      <div class="sectionlabel">
+        <span class="num">06</span><span class="dot">·</span><span class="name">Quickstart</span>
       </div>
-    </div>
-    <div class="footer__bottom mono">
-      <span>ngx-l402.org · v1.2.5 · MIT</span>
-      <span class="muted">// Lightning-native, not x402. Not a wallet. Not investment advice.</span>
-    </div>
-  </footer>
+      <h2 id="quickstart-h" class="h2">Run the gateway in 60 seconds.</h2>
+      <p class="lede lede--narrow">
+        Pre-built container, one docker command. The simplest setup needs only an
+        LNURL address to receive at — no node to run. Swap in LND, LNC, CLN,
+        NWC, BOLT12, or Eclair by changing env vars.
+      </p>
+      <div class="quick-cmd">
+        <figure class="codecard">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">$ run the gateway</span>
+            <button class="copy" type="button" aria-label="Copy docker run command">copy</button>
+          </figcaption>
+          <div class="body">
+            <pre><span class="f">$ docker</span> run -d --name l402-nginx -p <span class="n">8000</span>:<span class="n">8000</span> \
+  -e <span class="s">LN_CLIENT_TYPE=LNURL</span> \
+  -e <span class="s">LNURL_ADDRESS=you@your-lnurl-server.com</span> \
+  -e <span class="s">ROOT_KEY=$(openssl rand -hex 32)</span> \
+  <span class="s">ghcr.io/dhananjaypurohit/ngx_l402:latest</span>
 
-</main>
+<span class="c"># Gateway listens on :8000.</span>
+<span class="c"># curl http://localhost:8000/             → 200 OK</span>
+<span class="c"># curl -i http://localhost:8000/protected → 402 Payment Required</span></pre>
+          </div>
+          <!-- prettier-ignore -->
+          <template class="copy-src">docker run -d --name l402-nginx -p 8000:8000 -e LN_CLIENT_TYPE=LNURL -e LNURL_ADDRESS=you@your-lnurl-server.com -e ROOT_KEY=$(openssl rand -hex 32) ghcr.io/dhananjaypurohit/ngx_l402:latest</template>
+        </figure>
+      </div>
+      <ol class="steplist">
+        <li class="step">
+          <span class="step__n mono">01</span>
+          <div>
+            <h4 class="step__title">Configure &amp; run</h4>
+            <p class="step__body">
+              The image ships nginx, the module, and clients for all backends, with
+              a default <span class="mono">/protected</span> route. Mount your own
+              <span class="mono">nginx.conf</span> to define paid locations.
+            </p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__n mono">02</span>
+          <div>
+            <h4 class="step__title">Hit the endpoint</h4>
+            <p class="step__body">
+              Any request to a protected route comes back as <span class="mono">402 Payment
+                Required</span> with a Lightning invoice in the
+              <span class="mono">WWW-Authenticate</span> header.
+            </p>
+          </div>
+        </li>
+        <li class="step">
+          <span class="step__n mono">03</span>
+          <div>
+            <h4 class="step__title">Pay → preimage → 200</h4>
+            <p class="step__body">
+              Pay the invoice from any Lightning wallet. Retry with the preimage
+              in the <span class="mono">Authorization</span> header — the gateway verifies
+              locally and proxies through to your upstream.
+            </p>
+          </div>
+        </li>
+      </ol>
+      <div class="quick-foot">
+        <a class="btn btn--secondary" href="/docs/install-docker.html"
+          target="_blank" rel="noopener noreferrer">
+          Full quickstart guide <span class="arrow" style="transform:translateY(-1px)">↗</span>
+        </a>
+        <span class="muted">or read the <a href="/docs/lightning.html"
+            class="link" target="_blank" rel="noopener noreferrer">backend reference</a>, <a
+            href="/docs/config-env-vars.html" class="link" target="_blank"
+            rel="noopener noreferrer">directive reference</a>, <a
+            href="https://github.com/ngx-l402/ngx-l402/releases" class="link" target="_blank"
+            rel="noopener noreferrer">release notes</a>.</span>
+      </div>
+    </section>
 
-<script src="main.js" defer></script>
+    <!-- 06 · Comparison -->
+    <section id="compare" class="sec" aria-labelledby="compare-h">
+      <div class="sectionlabel">
+        <span class="num">07</span><span class="dot">·</span><span class="name">Comparison</span>
+      </div>
+      <h2 id="compare-h" class="h2">How it compares.</h2>
+      <p class="lede lede--narrow">
+        L402 has a healthy ecosystem — but most tools live at a different layer:
+        hosted platforms, or client libraries that <em>pay</em> endpoints. ngx-l402
+        is the self-hosted, non-custodial <b>server</b> side, as a module in the
+        nginx you already run.
+      </p>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <thead>
+            <tr>
+              <th>&nbsp;</th>
+              <th class="self">ngx-l402</th>
+              <th>Aperture</th>
+              <th>Fewsats</th>
+              <th>Lightning&nbsp;Enable</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>What it is</th>
+              <td class="self">nginx module</td>
+              <td>standalone proxy</td>
+              <td>hosted platform</td>
+              <td>hosted layer</td>
+            </tr>
+            <tr>
+              <th>Self-hosted</th>
+              <td class="self yes">yes — your nginx</td>
+              <td>yes (+ etcd)</td>
+              <td class="no">no</td>
+              <td class="no">no (BYO key)</td>
+            </tr>
+            <tr>
+              <th>Non-custodial</th>
+              <td class="self yes">yes</td>
+              <td>yes</td>
+              <td>platform-mediated</td>
+              <td class="no">custodial provider</td>
+            </tr>
+            <tr>
+              <th>Backends</th>
+              <td class="self">LND · LNC · CLN · Eclair · LNURL · NWC · BOLT12 · Cashu</td>
+              <td>LND</td>
+              <td>abstracted</td>
+              <td>Strike / OpenNode</td>
+            </tr>
+            <tr>
+              <th>Node required</th>
+              <td class="self yes">no (LNURL / NWC)</td>
+              <td class="no">yes (LND)</td>
+              <td>no</td>
+              <td>no</td>
+            </tr>
+            <tr>
+              <th>Cashu / privacy</th>
+              <td class="self yes">yes</td>
+              <td class="no">no</td>
+              <td class="no">no</td>
+              <td class="no">no</td>
+            </tr>
+            <tr>
+              <th>Discovery manifest</th>
+              <td class="self yes">/.well-known/l402-services</td>
+              <td class="no">no</td>
+              <td>index</td>
+              <td class="no">no</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="demo-note mono" style="text-align:left;">
+        <span class="muted">// Alby, l402-requests and the Fewsats SDK are L402 <em>clients</em> — they pay ngx-l402 endpoints, so they complement it rather than compete.</span><br />
+        <span class="muted">// snapshot as of July 2026 — these projects evolve. Spot something stale or unfair?
+          <a class="link" href="https://github.com/ngx-l402/ngx-l402.org/issues" target="_blank" rel="noopener noreferrer">open an issue</a>.</span>
+      </p>
+    </section>
+
+    <!-- 07 · Security -->
+    <section id="security" class="sec" aria-labelledby="security-h">
+      <div class="sectionlabel">
+        <span class="num">08</span><span class="dot">·</span><span class="name">Security</span>
+      </div>
+      <h2 id="security-h" class="h2">Built to sit in front of money.</h2>
+      <div class="whygrid">
+        <article class="whycard">
+          <div class="whycard__tag mono">non-custodial</div>
+          <h3 class="whycard__title">Funds never touch the gateway.</h3>
+          <div class="whycard__body">
+            <p>
+              Lightning payments settle straight to your node or address — the module
+              only verifies proof of payment, <span class="mono">sha256(preimage) == paymentHash</span>,
+              locally at the edge. Cashu tokens can auto-redeem to Lightning on an
+              interval you set.
+            </p>
+          </div>
+        </article>
+        <article class="whycard">
+          <div class="whycard__tag mono">replay-safe</div>
+          <h3 class="whycard__title">Spent proofs can't be reused.</h3>
+          <div class="whycard__body">
+            <p>
+              Macaroons are bound to the exact request path, and settled preimages and
+              Cashu tokens are recorded in Redis. If Redis is configured but unreachable,
+              the gateway <b>fails closed</b> — it returns 402 rather than letting a
+              request through unpaid.
+            </p>
+          </div>
+        </article>
+        <article class="whycard">
+          <div class="whycard__tag mono">abuse-resistant</div>
+          <h3 class="whycard__title">Rate-limit invoice spam.</h3>
+          <div class="whycard__body">
+            <p>
+              Per-route, per-IP invoice rate limiting
+              (<span class="mono">l402_invoice_rate_limit</span>) caps challenge
+              generation. Cashu P2PK proofs verify <b>offline</b> (NUT-12 DLEQ) —
+              no mint round-trip on the hot path.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 08 · FAQ -->
+    <section id="faq" class="sec" aria-labelledby="faq-h">
+      <div class="sectionlabel">
+        <span class="num">09</span><span class="dot">·</span><span class="name">FAQ</span>
+      </div>
+      <h2 id="faq-h" class="h2">Questions.</h2>
+      <div class="faq">
+        <details>
+          <summary>Do I need to run a Lightning node?</summary>
+          <p>No. The LNURL and NWC backends let you point at any Lightning address or wallet — no node to operate. Run LND / CLN / Eclair only if you want to.</p>
+        </details>
+        <details>
+          <summary>Is it custodial? Where do the sats go?</summary>
+          <p>Non-custodial. Payments go directly to the node or address you configure. ngx-l402 never holds funds — it only checks proof of payment.</p>
+        </details>
+        <details>
+          <summary>What happens if a payment fails or is never made?</summary>
+          <p>The client simply doesn't get access — it keeps receiving 402. No settlement, no access, and nothing to refund, because the gateway never takes custody.</p>
+        </details>
+        <details>
+          <summary>Can someone spam my endpoint with invoice requests?</summary>
+          <p>Set <span class="mono">l402_invoice_rate_limit</span> per route to cap invoice generation per IP. With Redis configured, replay and spend-tracking are shared across all nginx workers.</p>
+        </details>
+        <details>
+          <summary>How does an AI agent know what a route costs?</summary>
+          <p>Enable <span class="mono">l402_manifest</span> to publish <span class="mono">/.well-known/l402-services</span> — a JSON document of routes, prices, and accepted backends. An agent with only your hostname can discover and pay.</p>
+        </details>
+        <details>
+          <summary>Which wallets work?</summary>
+          <p>Any wallet that returns a standard 32-byte preimage. Note: some wallets (e.g. Wallet of Satoshi) return a non-standard 48-byte preimage that won't work with the classic flow — use auto-detect mode (supported on the LND, CLN, BOLT12, and Eclair backends) or a standard wallet.</p>
+        </details>
+        <details>
+          <summary>Which nginx versions are supported?</summary>
+          <p>nginx <span class="mono">1.28.0</span> or later. Pre-built <span class="mono">.so</span> binaries ship for 1.28.0, 1.28.3, 1.29.8, 1.30.3, and 1.31.2; any other version builds in one command: <span class="mono">docker build --build-arg NGX_VERSION=&lt;version&gt; .</span></p>
+        </details>
+        <details>
+          <summary>Can I test it without spending real sats?</summary>
+          <p>Yes — point it at a regtest LND or a Cashu mint for local testing. Mainnet and regtest use the same config.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <div class="brand">
+            <img src="logo.png" alt="" class="brand__logo" width="42" height="28" />
+            <span class="brand__name mono">ngx-l402</span>
+          </div>
+          <p class="footer__blurb">
+            A Lightning paywall as an nginx module. Open-source, MIT-licensed.
+          </p>
+        </div>
+        <div class="footer__col">
+          <h6>Project</h6>
+          <a href="https://github.com/ngx-l402/ngx-l402">GitHub</a>
+          <a href="https://gitworkshop.dev/npub1qnw27f2jsqvn05wzpd56m7ykgmepk57p0yrzw8fzc7lfhjkmjmqqmd9r6h/relay.ngit.dev/ngx-l402" target="_blank" rel="noopener noreferrer">Code on Nostr (ngit) ↗</a>
+          <a href="https://github.com/ngx-l402/ngx-l402/releases">Releases</a>
+          <a href="https://github.com/ngx-l402/ngx-l402/issues">Issues</a>
+          <a href="/docs/">Docs</a>
+          <a href="https://github.com/ngx-l402/ngx-l402.org/tree/main/examples">Examples</a>
+        </div>
+        <div class="footer__col">
+          <h6>Reference</h6>
+          <a href="/docs/config-env-vars.html" target="_blank"
+            rel="noopener noreferrer">Directive reference</a>
+          <a href="/docs/lightning.html" target="_blank"
+            rel="noopener noreferrer">Backend reference</a>
+          <a href="https://github.com/lightninglabs/L402" target="_blank" rel="noopener noreferrer">L402 spec (bLIP-26)
+            ↗</a>
+          <a href="https://docs.lightning.engineering/the-lightning-network/l402" target="_blank"
+            rel="noopener noreferrer">L402 overview ↗</a>
+        </div>
+      </div>
+      <div class="footer__bottom mono">
+        <span>ngx-l402.org · v1.2.7 · MIT</span>
+        <span class="muted">// Lightning-native. Non-custodial. Not a wallet. Not investment advice.</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <script src="main.js" defer></script>
 </body>
+
 </html>

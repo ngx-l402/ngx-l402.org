@@ -1,6 +1,6 @@
 # ngx-l402.org
 
-Static landing site for [ngx_l402](https://github.com/DhananjayPurohit/ngx_l402) —
+Static landing site for [ngx_l402](https://github.com/ngx-l402/ngx-l402) —
 an open-source nginx module that puts a Lightning paywall in front of any HTTP API.
 
 Plain HTML + CSS with one ~2 KB vanilla-JS file (copy-to-clipboard, live
@@ -19,11 +19,6 @@ Any static server works (the GitHub star fetch needs `http://`, not `file://`):
 ```
 python3 -m http.server 8000   # → http://localhost:8000
 ```
-
-## Deploy
-
-Deploy the repo root as-is on GitHub Pages, Cloudflare Pages, or Vercel —
-no build command, output directory `.`.
 
 ## License
 

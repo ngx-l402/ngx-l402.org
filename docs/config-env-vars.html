@@ -1,0 +1,412 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Environment Variables - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html" class="active"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./config-env-vars.html#environment-variables" id="environment-variables"><h1>Environment Variables</h1></a>
+<p>All configuration is done via environment variables set in <code>nginx.service</code> (typically at <code>/lib/systemd/system/nginx.service</code>).</p>
+<pre><code class="language-ini">[Service]
+...
+Environment=VAR_NAME=value
+</code></pre>
+<hr />
+<a class="header" href="./config-env-vars.html#lightning-client-type" id="lightning-client-type"><h2>Lightning Client Type</h2></a>
+<table><thead><tr><th> Variable </th><th> Required </th><th> Description </th></tr></thead><tbody>
+<tr><td> <code>LN_CLIENT_TYPE</code> </td><td> ✅ </td><td> One of: <code>LND</code>, <code>CLN</code>, <code>LNURL</code>, <code>NWC</code>, <code>BOLT12</code>, <code>ECLAIR</code> </td></tr>
+</tbody></table>
+<hr />
+<a class="header" href="./config-env-vars.html#lnd-direct-grpc" id="lnd-direct-grpc"><h2>LND (Direct gRPC)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=LND
+Environment=LND_ADDRESS=your-lnd-ip.com
+Environment=MACAROON_FILE_PATH=/path/to/macaroon
+Environment=CERT_FILE_PATH=/path/to/cert
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="./config-env-vars.html#lnd-via-lightning-node-connect-lnc" id="lnd-via-lightning-node-connect-lnc"><h2>LND via Lightning Node Connect (LNC)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=LND
+Environment=LNC_PAIRING_PHRASE=&lt;10-word-mnemonic-from-litd&gt;
+Environment=LNC_MAILBOX_SERVER=mailbox.terminal.lightning.today:443
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="./config-env-vars.html#cln-core-lightning" id="cln-core-lightning"><h2>CLN (Core Lightning)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=CLN
+Environment=CLN_LIGHTNING_RPC_FILE_PATH=/path/to/lightning-rpc
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="./config-env-vars.html#lnurl" id="lnurl"><h2>LNURL</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=LNURL
+Environment=LNURL_ADDRESS=username@your-lnurl-server.com
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="./config-env-vars.html#nwc-nostr-wallet-connect" id="nwc-nostr-wallet-connect"><h2>NWC (Nostr Wallet Connect)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=NWC
+Environment=NWC_URI=nostr+walletconnect://&lt;pubkey&gt;?relay=&lt;relay_url&gt;&amp;secret=&lt;secret&gt;
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="./config-env-vars.html#bolt12-reusable-offers" id="bolt12-reusable-offers"><h2>BOLT12 (Reusable Offers)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=BOLT12
+Environment=BOLT12_OFFER=lno1...
+Environment=CLN_LIGHTNING_RPC_FILE_PATH=/path/to/lightning-rpc
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<blockquote>
+<p><strong>How it works</strong>: When a client requests a protected resource, the module
+connects to your <strong>CLN node</strong> via the Unix socket at <code>CLN_LIGHTNING_RPC_FILE_PATH</code>
+and calls <code>fetchinvoice</code> to derive a fresh single-use <strong>BOLT11 invoice</strong> from
+the reusable BOLT12 offer. The node resolves the offer's embedded node ID and
+negotiates the payment parameters over the Lightning network automatically.
+<code>CLN_LIGHTNING_RPC_FILE_PATH</code> is therefore <strong>required</strong> alongside <code>BOLT12_OFFER</code>.</p>
+</blockquote>
+<a class="header" href="./config-env-vars.html#eclair" id="eclair"><h2>Eclair</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=ECLAIR
+Environment=ECLAIR_ADDRESS=http://127.0.0.1:8282
+Environment=ECLAIR_PASSWORD=eclairpass   # REQUIRED — no default; module disables auto-detect if unset
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>ECLAIR_PASSWORD</code> is <strong>required</strong> and has no default value.
+If it is not set the Eclair payment-detector is disabled at startup and an
+error is logged. Never use a well-known or placeholder password in production.</p>
+</blockquote>
+<hr />
+<a class="header" href="./config-env-vars.html#redis-dynamic-pricing--replay-protection" id="redis-dynamic-pricing--replay-protection"><h2>Redis (Dynamic Pricing &amp; Replay Protection)</h2></a>
+<blockquote>
+<p><strong>Strongly recommended in production.</strong> Without Redis, replay protection uses
+in-process caching only — it is lost on restart and does not work across
+multiple nginx workers. Multi-worker deployments <strong>require</strong> Redis.</p>
+</blockquote>
+<pre><code class="language-bash">Environment=REDIS_URL=redis://127.0.0.1:6379
+
+# Connection pool size (default: 4)
+Environment=REDIS_POOL_SIZE=4
+
+# TTL for spent Lightning preimages (default: 86400 = 24 hours)
+Environment=L402_PREIMAGE_TTL_SECONDS=86400
+
+# TTL for spent Cashu tokens (default: 86400 = 24 hours)
+Environment=L402_CASHU_TOKEN_TTL_SECONDS=86400
+</code></pre>
+<a class="header" href="./config-env-vars.html#setting-ttl-to-infinite-permanent-replay-protection" id="setting-ttl-to-infinite-permanent-replay-protection"><h3>Setting TTL to &quot;infinite&quot; (permanent replay protection)</h3></a>
+<p>The module stores spent preimages and Cashu tokens in Redis using
+<code>SET NX EX &lt;seconds&gt;</code>. Redis requires a positive integer for <code>EX</code> — there is
+no built-in &quot;never expire&quot; option via this command.</p>
+<p>To achieve <strong>permanent</strong> replay protection (strongly recommended in production),
+set the TTL to a very large value:</p>
+<pre><code class="language-bash"># ~68 years — effectively permanent
+Environment=L402_PREIMAGE_TTL_SECONDS=2147483647
+Environment=L402_CASHU_TOKEN_TTL_SECONDS=2147483647
+</code></pre>
+<blockquote>
+<p><strong>Trade-off</strong>: Permanent keys accumulate in Redis indefinitely. For a busy
+API with many unique tokens this will grow Redis memory over time. Size each
+key at ~100 bytes; 1 million spent tokens ≈ 100 MB.</p>
+<p><strong>Do not set <code>0</code></strong> — Redis rejects <code>EX 0</code> with an error, which causes the
+module to fail-open and skip the replay check entirely.</p>
+</blockquote>
+<hr />
+<a class="header" href="./config-env-vars.html#cashu-ecash" id="cashu-ecash"><h2>Cashu eCash</h2></a>
+<pre><code class="language-bash">Environment=CASHU_ECASH_SUPPORT=true
+Environment=CASHU_DB_PATH=/var/lib/nginx/cashu_tokens.db
+# BIP39 wallet mnemonic (the Cashu/NUT-13 backup phrase). Leave unset to have one
+# generated and saved next to the DB on first run (check the logs for the phrase).
+Environment=CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot;
+# Optional: where to persist a generated mnemonic (defaults beside the DB file)
+# Environment=CASHU_WALLET_MNEMONIC_FILE=/var/lib/nginx/wallet.mnemonic
+
+# Optional: Whitelist specific mints (comma-separated)
+# In standard mode: if not set, all mints are accepted
+# In P2PK mode: REQUIRED for security and NUT-24 payment request
+Environment=CASHU_WHITELISTED_MINTS=https://mint1.example.com,https://mint2.example.com
+
+# Optional: Auto-redeem Cashu tokens to Lightning
+Environment=CASHU_REDEEM_ON_LIGHTNING=true
+Environment=CASHU_REDEMPTION_INTERVAL_SECS=3600  # default: 1 hour
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>CASHU_WALLET_MNEMONIC</code> is the BIP39 phrase that derives the wallet seed (NUT-13). It is the only backup of your wallet — anyone with it can steal your tokens, and losing it loses the funds!</p>
+<ul>
+<li>12 or 24 English words; restorable in any NUT-13 wallet (nutshell, cashu-ts, cdk-cli)</li>
+<li>If unset, one is generated and saved beside the DB on first run — <strong>back it up</strong></li>
+<li>On startup the module records a fingerprint of the seed next to the DB and refuses to start if a later mnemonic doesn't match (so a changed/typo'd phrase can't silently orphan a funded wallet); delete the <code>wallet.fingerprint</code> file to switch wallets intentionally</li>
+<li>Never commit it to Git; keep it in a secrets manager</li>
+</ul>
+</blockquote>
+<a class="header" href="./config-env-vars.html#redemption-fee-handling" id="redemption-fee-handling"><h3>Redemption Fee Handling</h3></a>
+<pre><code class="language-bash"># Minimum balance to attempt melting (default: 10 sats)
+Environment=CASHU_MELT_MIN_BALANCE_SATS=10
+
+# Percentage to reserve for fees (default: 1%)
+Environment=CASHU_MELT_FEE_RESERVE_PERCENT=1
+
+# Minimum fee reserve when percentage is small (default: 4 sats)
+Environment=CASHU_MELT_MIN_FEE_RESERVE_SATS=4
+
+# Maximum proofs per melt operation (default: 0 = unlimited)
+# Logic: if proof_count &gt; limit, select first N proofs, rest remain for next cycle
+# Use case: prevent hitting mint proof limits (e.g. mint.coinos.io has 1000 proof limit)
+Environment=CASHU_MAX_PROOFS_PER_MELT=1000
+</code></pre>
+<a class="header" href="./config-env-vars.html#p2pk-mode-high-performance" id="p2pk-mode-high-performance"><h3>P2PK Mode (High Performance)</h3></a>
+<pre><code class="language-bash">Environment=CASHU_P2PK_MODE=true
+Environment=CASHU_P2PK_PRIVATE_KEY=&lt;your-private-key-hex&gt;
+# Public key is derived automatically from the private key
+# CASHU_WHITELISTED_MINTS is REQUIRED in P2PK mode
+Environment=CASHU_REQUIRE_DLEQ=true   # default: true — keep it on
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>CASHU_P2PK_PRIVATE_KEY</code> is equally critical. Anyone with this key can spend tokens locked to your public key!</p>
+<ul>
+<li>Generate with: <code>openssl rand -hex 32</code></li>
+<li>Never commit to Git or share publicly</li>
+<li>Keep it secure alongside <code>CASHU_WALLET_MNEMONIC</code></li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>🔒 NUT-12 DLEQ (<code>CASHU_REQUIRE_DLEQ</code>)</strong>: In P2PK mode, tokens are verified
+on a fast path that <strong>skips the mint swap</strong> for lower latency. DLEQ proofs
+(NUT-12) are what let us confirm offline — using only cached mint keysets —
+that each proof was actually signed by the whitelisted mint. With this check
+off, a forger could submit correctly-shaped, mint-whitelisted proofs that the
+mint never signed and get free service (the operator only finds out at
+redemption time, when the melt fails).</p>
+<ul>
+<li><strong>Default <code>true</code></strong>: a proof with no DLEQ data is rejected. Modern Cashu
+wallets include DLEQ by default, so this is safe.</li>
+<li>Set <code>CASHU_REQUIRE_DLEQ=false</code> only as a temporary safety valve if a
+real-world wallet ships DLEQ-less tokens. This is <strong>insecure</strong> and re-opens
+the forged-proof window above.</li>
+<li>The standard (non-P2PK) mode is unaffected: its mint swap already validates
+proofs authoritatively.</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>🔒 NUT-12 DLEQ (<code>CASHU_REQUIRE_DLEQ</code>)</strong>: In P2PK mode, tokens are verified
+on a fast path that <strong>skips the mint swap</strong> for lower latency. DLEQ proofs
+(NUT-12) are what let us confirm offline — using only cached mint keysets —
+that each proof was actually signed by the whitelisted mint. With this check
+off, a forger could submit correctly-shaped, mint-whitelisted proofs that the
+mint never signed and get free service (the operator only finds out at
+redemption time, when the melt fails).</p>
+<ul>
+<li><strong>Default <code>true</code></strong>: a proof with no DLEQ data is rejected. Modern Cashu
+wallets include DLEQ by default, so this is safe.</li>
+<li>Set <code>CASHU_REQUIRE_DLEQ=false</code> only as a temporary safety valve if a
+real-world wallet ships DLEQ-less tokens. This is <strong>insecure</strong> and re-opens
+the forged-proof window above.</li>
+<li>The standard (non-P2PK) mode is unaffected: its mint swap already validates
+proofs authoritatively.</li>
+</ul>
+</blockquote>
+<p>See <a href="./cashu.md">Cashu eCash</a> for a full explanation of Standard vs P2PK mode and redemption fee examples.</p>
+<hr />
+<a class="header" href="./config-env-vars.html#lnd-via-socks5--tor-proxy" id="lnd-via-socks5--tor-proxy"><h2>LND via SOCKS5 / Tor proxy</h2></a>
+<pre><code class="language-bash"># [Optional] Route LND gRPC through a SOCKS5 proxy
+Environment=SOCKS5_PROXY=socks5://127.0.0.1:9050
+</code></pre>
+<hr />
+<a class="header" href="./config-env-vars.html#capability-manifest-metadata" id="capability-manifest-metadata"><h2>Capability Manifest Metadata</h2></a>
+<p>These optional variables populate the <code>service</code> block in <code>/.well-known/l402-services</code>.
+All are omitted from the manifest JSON when unset.</p>
+<pre><code class="language-bash">Environment=L402_SERVICE_NAME=My API
+Environment=L402_SERVICE_DESCRIPTION=Premium data, paid per request.
+Environment=L402_SERVICE_OPERATOR=npub1...   # Nostr pubkey, DID, or free-form
+Environment=L402_SERVICE_CONTACT=ops@example.com
+</code></pre>
+<p>See <a href="./manifest.md">Capability Manifest</a> for the full manifest spec.</p>
+<hr />
+<a class="header" href="./config-env-vars.html#logging" id="logging"><h2>Logging</h2></a>
+<pre><code class="language-bash">Environment=RUST_LOG=info
+# For module-specific debug logs:
+Environment=RUST_LOG=ngx_l402_lib=debug,info
+
+# Log per-request performance timing (set to any non-empty value to enable)
+Environment=L402_PERF_LOG=1
+</code></pre>
+<hr />
+<a class="header" href="./config-env-vars.html#nginx-location-directives" id="nginx-location-directives"><h2>Nginx Location Directives</h2></a>
+<p>These are set inside <code>location {}</code> blocks in <code>nginx.conf</code> (not environment variables).</p>
+<table><thead><tr><th> Directive </th><th> Type </th><th> Default </th><th> Description </th></tr></thead><tbody>
+<tr><td> <code>l402</code> </td><td> boolean¹ </td><td> <code>off</code> </td><td> Enable L402 protection for this location </td></tr>
+<tr><td> <code>l402_amount_msat_default</code> </td><td> integer </td><td> — </td><td> Price in millisatoshis (overridden by Redis dynamic pricing) </td></tr>
+<tr><td> <code>l402_macaroon_timeout</code> </td><td> integer (seconds) </td><td> <code>0</code> (disabled) </td><td> Macaroon validity window; <code>0</code> = no expiry </td></tr>
+<tr><td> <code>l402_lnurl_addr</code> </td><td> string </td><td> — </td><td> Per-location LNURL address for multi-tenant setups </td></tr>
+<tr><td> <code>l402_invoice_rate_limit</code> </td><td> <code>&lt;N&gt;r/m</code> or <code>&lt;N&gt;r/s</code> </td><td> disabled </td><td> Max invoice generation rate per IP per route </td></tr>
+<tr><td> <code>l402_auto_detect_payment</code> </td><td> boolean¹ </td><td> <code>off</code> </td><td> Server-side payment detection — queries the Lightning node instead of requiring the client to supply the preimage </td></tr>
+<tr><td> <code>l402_indefinite_access</code> </td><td> boolean¹ </td><td> <code>off</code> </td><td> Skip the single-use preimage replay check — a single payment stays valid for the macaroon lifetime </td></tr>
+</tbody></table>
+<blockquote>
+<p>¹ <strong>Boolean directives</strong> accept: <code>on</code> / <code>off</code> / <code>true</code> / <code>false</code> / <code>1</code> / <code>0</code> / <code>yes</code> / <code>no</code> (case-insensitive).</p>
+</blockquote>
+<a class="header" href="./config-env-vars.html#example-auto-detect-enabled-location" id="example-auto-detect-enabled-location"><h3>Example: auto-detect enabled location</h3></a>
+<pre><code class="language-nginx">location /protected {
+    l402                         on;
+    l402_amount_msat_default     10000;
+    l402_macaroon_timeout        0;
+    l402_auto_detect_payment     on;
+
+    try_files /index.html =404;
+}
+</code></pre>
+<a class="header" href="./config-env-vars.html#example-subscription-style-indefinite-access" id="example-subscription-style-indefinite-access"><h3>Example: subscription-style (indefinite) access</h3></a>
+<pre><code class="language-nginx">location /subscriber-only {
+    l402                         on;
+    l402_amount_msat_default     100000;
+    l402_macaroon_timeout        2592000;  # 30 days
+    l402_indefinite_access       on;       # single payment stays valid until macaroon expires
+
+    try_files /index.html =404;
+}
+</code></pre>
+<blockquote>
+<p><strong>Warning</strong>: <code>l402_indefinite_access on</code> should always be paired with a non-zero
+<code>l402_macaroon_timeout</code>. Without an expiry, the macaroon never expires and the
+same preimage grants access forever.</p>
+</blockquote>
+<blockquote>
+<p><strong>Backends that support auto-detect</strong>: <code>LND</code>, <code>CLN</code>, <code>BOLT12</code>, <code>ECLAIR</code>.
+<code>LNC</code>, <code>NWC</code>, and <code>LNURL</code> do <strong>not</strong> support server-side lookup.</p>
+</blockquote>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="./install-docker.html" class="mobile-nav-chapters previous" title="Previous chapter">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="./config-redis.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./install-docker.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./config-redis.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>
