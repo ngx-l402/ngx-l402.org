@@ -1,0 +1,290 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Docker - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html" class="active"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./install-docker.html#docker-installation" id="docker-installation"><h1>Docker Installation</h1></a>
+<p>The easiest way to deploy the L402 Nginx module is with our official Docker images.</p>
+<pre><code class="language-bash">docker pull ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<hr />
+<a class="header" href="./install-docker.html#quick-start-examples" id="quick-start-examples"><h2>Quick Start Examples</h2></a>
+<a class="header" href="./install-docker.html#1-lnurl-backend-simplest-setup" id="1-lnurl-backend-simplest-setup"><h3>1. LNURL Backend (Simplest Setup)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LNURL \
+  -e LNURL_ADDRESS=username@your-lnurl-server.com \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#2-lnd-backend-with-cashu-support" id="2-lnd-backend-with-cashu-support"><h3>2. LND Backend with Cashu Support</h3></a>
+<pre><code class="language-bash">mkdir -p ~/l402-data
+cp ~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon ~/l402-data/
+cp ~/.lnd/tls.cert ~/l402-data/
+
+docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LND \
+  -e LND_ADDRESS=your-lnd-ip:10009 \
+  -e MACAROON_FILE_PATH=/app/data/admin.macaroon \
+  -e CERT_FILE_PATH=/app/data/tls.cert \
+  -e CASHU_ECASH_SUPPORT=true \
+  -e CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot; \
+  -e CASHU_DB_PATH=/app/data/cashu_tokens.db \
+  -e CASHU_WHITELISTED_MINTS=https://mint1.example.com,https://mint2.example.com \
+  -e CASHU_REDEEM_ON_LIGHTNING=true \
+  -e REDIS_URL=redis://redis:6379 \
+  -v ~/l402-data:/app/data \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#3-lnd-via-lightning-node-connect-lnc" id="3-lnd-via-lightning-node-connect-lnc"><h3>3. LND via Lightning Node Connect (LNC)</h3></a>
+<pre><code class="language-bash"># Generate a pairing phrase from Lightning Terminal first:
+# litcli sessions add --label=&quot;nginx-l402&quot; --type=admin
+
+docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LND \
+  -e LNC_PAIRING_PHRASE=&quot;word1 word2 word3 word4 word5 word6 word7 word8 word9 word10&quot; \
+  -e LNC_MAILBOX_SERVER=mailbox.terminal.lightning.today:443 \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#4-cln-backend-core-lightning" id="4-cln-backend-core-lightning"><h3>4. CLN Backend (Core Lightning)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=CLN \
+  -e CLN_LIGHTNING_RPC_FILE_PATH=/app/data/lightning-rpc \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  -e CASHU_ECASH_SUPPORT=true \
+  -e CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot; \
+  -e CASHU_DB_PATH=/app/data/cashu_tokens.db \
+  -v ~/.lightning/bitcoin/lightning-rpc:/app/data/lightning-rpc:ro \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#5-nwc-backend-nostr-wallet-connect" id="5-nwc-backend-nostr-wallet-connect"><h3>5. NWC Backend (Nostr Wallet Connect)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=NWC \
+  -e NWC_URI=nostr+walletconnect://your-pubkey?relay=wss://relay.damus.io&amp;secret=your-secret \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#6-high-performance-p2pk-mode-recommended-for-production" id="6-high-performance-p2pk-mode-recommended-for-production"><h3>6. High-Performance P2PK Mode (Recommended for Production)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LND \
+  -e LND_ADDRESS=your-lnd-ip:10009 \
+  -e MACAROON_FILE_PATH=/app/data/admin.macaroon \
+  -e CERT_FILE_PATH=/app/data/tls.cert \
+  -e CASHU_ECASH_SUPPORT=true \
+  -e CASHU_P2PK_MODE=true \
+  -e CASHU_P2PK_PRIVATE_KEY=your-32-byte-hex-private-key \
+  -e CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot; \
+  -e CASHU_DB_PATH=/app/data/cashu_tokens.db \
+  -e CASHU_WHITELISTED_MINTS=https://mint1.example.com \
+  -e CASHU_REDEEM_ON_LIGHTNING=true \
+  -e REDIS_URL=redis://redis:6379 \
+  -v ~/l402-data:/app/data \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#7-bolt12-backend-reusable-offers" id="7-bolt12-backend-reusable-offers"><h3>7. BOLT12 Backend (Reusable Offers)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=BOLT12 \
+  -e BOLT12_OFFER=lno1... \
+  -e CLN_LIGHTNING_RPC_FILE_PATH=/app/data/lightning-rpc \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  -v ~/.lightning/bitcoin/lightning-rpc:/app/data/lightning-rpc:ro \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="./install-docker.html#8-eclair-backend" id="8-eclair-backend"><h3>8. Eclair Backend</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=ECLAIR \
+  -e ECLAIR_ADDRESS=http://your-eclair-node:8282 \
+  -e ECLAIR_PASSWORD=your-eclair-password \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<hr />
+<a class="header" href="./install-docker.html#generating-required-secrets" id="generating-required-secrets"><h2>Generating Required Secrets</h2></a>
+<pre><code class="language-bash"># ROOT_KEY (required for all setups)
+openssl rand -hex 32
+
+# CASHU_WALLET_MNEMONIC (for Cashu support): a BIP39 phrase, NOT a random hex.
+# Leave it unset to have one generated and saved beside the DB on first run,
+# or generate a 12/24-word phrase with any BIP39 tool.
+
+# CASHU_P2PK_PRIVATE_KEY (for P2PK mode)
+openssl rand -hex 32
+</code></pre>
+<hr />
+<a class="header" href="./install-docker.html#testing-your-setup" id="testing-your-setup"><h2>Testing Your Setup</h2></a>
+<pre><code class="language-bash"># Test free endpoint
+curl http://localhost:8000/
+
+# Test protected endpoint (should return 402 with L402 header)
+curl -i http://localhost:8000/protected
+
+# Check container logs
+docker logs l402-nginx -f
+
+# Stop the container
+docker stop l402-nginx
+</code></pre>
+<hr />
+<a class="header" href="./install-docker.html#specific-versions" id="specific-versions"><h2>Specific Versions</h2></a>
+<pre><code class="language-bash">docker pull ghcr.io/dhananjaypurohit/ngx_l402:v1.2.5
+</code></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="./macos-setup.html" class="mobile-nav-chapters previous" title="Previous chapter">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="./config-env-vars.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./macos-setup.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./config-env-vars.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>

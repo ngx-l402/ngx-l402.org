@@ -1,0 +1,205 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Introduction - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html" class="active">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./index.html#ngx_l402--l402-nginx-module" id="ngx_l402--l402-nginx-module"><h1>ngx_l402 — L402 Nginx Module</h1></a>
+<p>An <a href="https://docs.lightning.engineering/the-lightning-network/l402">L402</a> authentication module for Nginx that enables Lightning Network-based monetization for your REST APIs (HTTP/1 and HTTP/2).</p>
+<p>It supports the following Lightning backends:</p>
+<table><thead><tr><th> Backend </th><th> Description </th></tr></thead><tbody>
+<tr><td> <strong>LND</strong> </td><td> Lightning Network Daemon (direct gRPC) </td></tr>
+<tr><td> <strong>LNC</strong> </td><td> Lightning Node Connect (remote LND via mailbox) </td></tr>
+<tr><td> <strong>CLN</strong> </td><td> Core Lightning </td></tr>
+<tr><td> <strong>Eclair</strong> </td><td> Eclair node </td></tr>
+<tr><td> <strong>LNURL</strong> </td><td> Lightning Network URL </td></tr>
+<tr><td> <strong>NWC</strong> </td><td> Nostr Wallet Connect </td></tr>
+<tr><td> <strong>BOLT12</strong> </td><td> Reusable Lightning Offers </td></tr>
+</tbody></table>
+<p>The module can be configured to charge per unique API call, enabling per-endpoint monetization based on request paths.</p>
+<p><img src="https://github.com/user-attachments/assets/3db23ab0-6025-426e-86f8-3505fa0840b9" alt="L402 module demo" /></p>
+<hr />
+<a class="header" href="./index.html#how-it-works" id="how-it-works"><h2>How It Works</h2></a>
+<pre><code class="language-mermaid">graph TD;
+    A[Request Received] --&gt; B{Endpoint L402 Enabled?}
+    B --&gt;|No| C[Return 200 OK]
+    B --&gt;|Yes| D{&quot;Any auth header present? (L402 or X-Cashu)&quot;}
+    D --&gt;|No| F[Generate L402 Header macaroon &amp; invoice]
+    D --&gt;|Yes| K[&quot;Parse L402 macaroon/preimage or X-Cashu (if present)&quot;]
+    F --&gt; G{Header Generation Success?}
+    G --&gt;|No| I[Return 500 Internal Server Error]
+    G --&gt;|Yes| H[Add WWW-Authenticate Header]
+    H --&gt; J[Return 402 Payment Required]
+    K --&gt; L{Parse Success?}
+    L --&gt;|No| M[Return 500 Internal Server Error]
+    L --&gt;|Yes| AD{&quot;Auto-detect enabled AND no preimage in header?&quot;}
+    AD --&gt;|Yes| ND[Query Lightning node for settled invoice]
+    ND --&gt; NS{Invoice settled?}
+    NS --&gt;|No| NR[Return 402 Payment Required]
+    NS --&gt;|Yes| NV[&quot;Verify macaroon signature (preimage from node)&quot;]
+    NV --&gt;|Valid| P[Return 200 OK]
+    NV --&gt;|Invalid| Q[Return 401 Unauthorized]
+    AD --&gt;|No / preimage provided| N[&quot;Verify macaroon/preimage OR Cashu proofs (whitelist; P2PK lock if enabled; double-spend check; amount &gt;= price)&quot;]
+    N --&gt; O{Verification Success?}
+    O --&gt;|No| Q
+    O --&gt;|Yes| P
+</code></pre>
+<blockquote>
+<p><strong>Auto-detect</strong>: When <code>l402_auto_detect_payment on</code> is set and the client sends only <code>Authorization: L402 &lt;macaroon&gt;</code> (no preimage), the server queries the Lightning node directly. Supported on <strong>LND</strong>, <strong>CLN</strong>, and <strong>Eclair</strong>.</p>
+</blockquote>
+<hr />
+<a class="header" href="./index.html#quick-start" id="quick-start"><h2>Quick Start</h2></a>
+<blockquote>
+<p><strong>Note</strong>: This module requires <strong>NGINX version 1.28.0</strong> or later.</p>
+</blockquote>
+<p>The fastest way to get started is with Docker:</p>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LNURL \
+  -e LNURL_ADDRESS=username@your-lnurl-server.com \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<p>Then test it:</p>
+<pre><code class="language-bash"># Should return 200 OK
+curl http://localhost:8000/
+
+# Should return 402 Payment Required with L402 header
+curl -i http://localhost:8000/protected
+</code></pre>
+<p>See the <a href="./install-manual.md">Installation</a> section for full setup options.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+                    <a rel="next" href="./install-manual.html" class="mobile-nav-chapters next" title="Next chapter">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+
+            
+                <a href="./install-manual.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>

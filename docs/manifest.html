@@ -1,0 +1,278 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Capability Manifest - ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html" class="active"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./manifest.html#capability-manifest" id="capability-manifest"><h1>Capability Manifest</h1></a>
+<p>The <code>l402_manifest</code> directive turns a location into a discovery endpoint
+that emits a JSON description of every L402-protected route on the
+server. It is intended to live at <code>/.well-known/l402-services</code> (<a href="https://datatracker.ietf.org/doc/html/rfc8615">RFC 8615</a>),
+making this instance self-describing to clients that have only the host.</p>
+<pre><code class="language-nginx">location = /.well-known/l402-services {
+    l402_manifest;
+
+    # Optional: restrict who can scrape pricing details.
+    # allow 10.0.0.0/8;
+    # deny  all;
+}
+</code></pre>
+<p>This is the agent-era equivalent of <code>robots.txt</code> or <code>security.txt</code>. An
+autonomous agent (or any client) given only <code>https://example.com</code> can
+fetch the manifest, learn which routes are paid, how much they cost, and
+which payment backends are accepted — without any out-of-band integration.</p>
+<hr />
+<a class="header" href="./manifest.html#example-response" id="example-response"><h2>Example response</h2></a>
+<pre><code class="language-json">{
+  &quot;version&quot;: &quot;1&quot;,
+  &quot;service&quot;: {
+    &quot;name&quot;: &quot;Example API&quot;,
+    &quot;description&quot;: &quot;Stock data API&quot;
+  },
+  &quot;payment_methods&quot;: [
+    {
+      &quot;type&quot;: &quot;lightning&quot;,
+      &quot;backend&quot;: &quot;LNURL&quot;,
+      &quot;address&quot;: &quot;hello@getalby.com&quot;
+    },
+    {
+      &quot;type&quot;: &quot;cashu&quot;,
+      &quot;mints&quot;: [&quot;https://mint.minibits.cash&quot;],
+      &quot;p2pk_supported&quot;: true,
+      &quot;challenge_header&quot;: &quot;X-Cashu&quot;
+    }
+  ],
+  &quot;routes&quot;: [
+    {
+      &quot;path&quot;: &quot;/protected&quot;,
+      &quot;price&quot;: {
+        &quot;type&quot;: &quot;static&quot;,
+        &quot;amount_msat&quot;: 10000
+      },
+      &quot;caveats_required&quot;: [&quot;RequestPath = /protected&quot;]
+    },
+    {
+      &quot;path&quot;: &quot;/rate-limited&quot;,
+      &quot;price&quot;: {
+        &quot;type&quot;: &quot;static&quot;,
+        &quot;amount_msat&quot;: 10000
+      },
+      &quot;caveats_required&quot;: [&quot;RequestPath = /rate-limited&quot;],
+      &quot;rate_limit&quot;: {
+        &quot;max_requests&quot;: 2,
+        &quot;window_secs&quot;: 60
+      }
+    }
+  ]
+}
+</code></pre>
+<hr />
+<a class="header" href="./manifest.html#what-the-manifest-describes" id="what-the-manifest-describes"><h2>What the manifest describes</h2></a>
+<table><thead><tr><th> Field </th><th> Source </th><th> Meaning </th></tr></thead><tbody>
+<tr><td> <code>version</code> </td><td> constant <code>&quot;1&quot;</code> </td><td> Schema version. Bumped on breaking changes; agents should reject unknown majors. </td></tr>
+<tr><td> <code>service.name</code>, <code>service.description</code>, <code>service.operator</code>, <code>service.contact</code> </td><td> env vars <code>L402_SERVICE_NAME</code>, <code>L402_SERVICE_DESCRIPTION</code>, <code>L402_SERVICE_OPERATOR</code>, <code>L402_SERVICE_CONTACT</code> </td><td> Optional, omitted when unset. </td></tr>
+<tr><td> <code>payment_methods[].type</code> </td><td> <code>lightning</code> or <code>cashu</code> </td><td> Which payment rail this method describes. </td></tr>
+<tr><td> <code>payment_methods[].backend</code> </td><td> env var <code>LN_CLIENT_TYPE</code> </td><td> <code>LNURL</code>, <code>LND</code>, <code>CLN</code>, <code>NWC</code>, <code>BOLT12</code>, <code>ECLAIR</code>, <code>LNC</code>. </td></tr>
+<tr><td> <code>payment_methods[].address</code> </td><td> env var <code>LNURL_ADDRESS</code> (LNURL backends only) </td><td> Server-default LN address. May be overridden per-route via <code>lnurl_addr</code>. </td></tr>
+<tr><td> <code>payment_methods[].mints</code> </td><td> env var <code>CASHU_WHITELISTED_MINTS</code> </td><td> Allowed Cashu mints (when Cashu is enabled). </td></tr>
+<tr><td> <code>payment_methods[].p2pk_supported</code> </td><td> env var <code>CASHU_P2PK_MODE</code> </td><td> Whether NUT-24 P2PK Cashu is enabled. </td></tr>
+<tr><td> <code>routes[].path</code> </td><td> <code>location</code> directive </td><td> URL path served by this route. </td></tr>
+<tr><td> <code>routes[].price.amount_msat</code> </td><td> <code>l402_amount_msat_default</code> </td><td> Base price after <code>merge_loc_conf</code>. </td></tr>
+<tr><td> <code>routes[].caveats_required</code> </td><td> derived </td><td> Caveats the issued macaroon will carry. Today always <code>[RequestPath = &lt;path&gt;]</code>. </td></tr>
+<tr><td> <code>routes[].macaroon_timeout_secs</code> </td><td> <code>l402_macaroon_timeout</code> </td><td> Omitted when <code>0</code> (no expiry). </td></tr>
+<tr><td> <code>routes[].lnurl_addr</code> </td><td> <code>l402_lnurl_addr</code> </td><td> Per-route LNURL override for multi-tenant deployments. </td></tr>
+<tr><td> <code>routes[].rate_limit</code> </td><td> <code>l402_invoice_rate_limit</code> </td><td> Server-side invoice rate limit applied before challenge issuance. </td></tr>
+<tr><td> <code>routes[].auto_detect_payment</code> </td><td> <code>l402_auto_detect_payment</code> </td><td> When true, clients can omit the preimage and the server settles via node lookup. </td></tr>
+</tbody></table>
+<p>Dynamic (Redis-backed) pricing is <strong>not</strong> reflected in <code>price.amount_msat</code> —
+the manifest emits the static default. Dynamic prices change per request
+and would require a Redis round-trip per route to render accurately;
+that's out of scope for v1.</p>
+<hr />
+<a class="header" href="./manifest.html#hiding-a-route" id="hiding-a-route"><h2>Hiding a route</h2></a>
+<p>Operators may want certain paid routes to remain undiscoverable — private
+APIs, beta tiers, customer-specific endpoints. Use <code>l402_manifest_hide;</code>
+on the location:</p>
+<pre><code class="language-nginx">location /internal-paid {
+    l402 on;
+    l402_amount_msat_default 100000;
+    l402_manifest_hide;       # not advertised in /.well-known/l402-services
+}
+</code></pre>
+<p>The route still enforces L402 normally. It just doesn't appear in the
+manifest's <code>routes[]</code> array.</p>
+<hr />
+<a class="header" href="./manifest.html#service-level-metadata" id="service-level-metadata"><h2>Service-level metadata</h2></a>
+<p>The optional <code>service</code> block is read from environment variables at
+manifest-render time:</p>
+<pre><code class="language-sh">L402_SERVICE_NAME=&quot;Example API&quot;
+L402_SERVICE_DESCRIPTION=&quot;Premium financial data, paid per request.&quot;
+L402_SERVICE_OPERATOR=&quot;npub1abcd...&quot;   # Nostr pubkey, DID, or free-form
+L402_SERVICE_CONTACT=&quot;ops@example.com&quot;
+</code></pre>
+<p>All four are optional. Unset variables are omitted from the response so
+the manifest stays valid JSON even with no service metadata.</p>
+<hr />
+<a class="header" href="./manifest.html#caveats-and-limitations" id="caveats-and-limitations"><h2>Caveats and limitations</h2></a>
+<ul>
+<li><strong>Per-worker registry.</strong> The manifest registry is per-nginx-worker. On a
+multi-worker deployment, every worker sees the same routes (config is
+shared), so this is a non-issue for the manifest itself. (Unlike the
+<code>l402_metrics</code> counters, which use a shared-memory zone, the registry is
+read-only per-worker state and needs no cross-worker aggregation.)</li>
+<li><strong>No authentication by default.</strong> Pricing information is public.
+Restrict the endpoint with <code>allow</code>/<code>deny</code>, an auth subrequest, or a
+firewall if competitors should not see your full pricing matrix.</li>
+<li><strong>Reload behaviour.</strong> On <code>nginx -s reload</code>, new workers start with a
+fresh registry built from the new config. Old workers serve in-flight
+requests with their existing registry until they exit.</li>
+</ul>
+<hr />
+<a class="header" href="./manifest.html#why-this-matters" id="why-this-matters"><h2>Why this matters</h2></a>
+<p>Without a manifest, every L402 integration is a bespoke wiring job: the
+client must be told the routes, prices, payment backends, and caveat
+formats out of band. With one, an agent can land on a host and onboard
+itself end-to-end:</p>
+<pre><code class="language-text">GET /.well-known/l402-services  → learn the API surface
+GET /protected                → receive 402 + bolt11 invoice
+PAY the invoice               → get preimage
+GET /protected with L402 auth → success
+</code></pre>
+<p>For autonomous agents — Claude tools, MCP servers, custom-built — this is
+the difference between L402 being a protocol and L402 being a
+<em>discoverable web standard</em>.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="./dry-run.html" class="mobile-nav-chapters previous" title="Previous chapter">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+
+            </div>
+
+            
+                <a href="./dry-run.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>

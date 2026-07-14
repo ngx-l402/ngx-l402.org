@@ -1,0 +1,1395 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>ngx_l402 - L402 Nginx Module</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Lightning Network-based authentication and monetization for Nginx">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = store.get('mdbook-sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./index.html">Introduction</a></li><li class="spacer"></li><li><a href="./install-manual.html"><strong>1.</strong> Manual Install</a></li><li><a href="./macos-setup.html"><strong>2.</strong> macOS Setup</a></li><li><a href="./install-docker.html"><strong>3.</strong> Docker</a></li><li><a href="./config-env-vars.html"><strong>4.</strong> Environment Variables</a></li><li><a href="./config-redis.html"><strong>5.</strong> Redis &amp; Dynamic Config</a></li><li><a href="./config-multi-tenant.html"><strong>6.</strong> Multi-Tenant</a></li><li><a href="./lightning.html"><strong>7.</strong> Lightning Network</a></li><li><a href="./cashu.html"><strong>8.</strong> Cashu eCash</a></li><li><a href="./building.html"><strong>9.</strong> Building from Source</a></li><li><a href="./logging.html"><strong>10.</strong> Logging</a></li><li><a href="./dry-run.html"><strong>11.</strong> Dry-Run (Shadow) Mode</a></li><li><a href="./manifest.html"><strong>12.</strong> Capability Manifest</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page" tabindex="-1">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars" title="Toggle sidebar"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush" title="Change theme"></i>
+                    </div>
+
+                    <h1 class="menu-title">ngx_l402 - L402 Nginx Module</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="print.html#ngx_l402--l402-nginx-module" id="ngx_l402--l402-nginx-module"><h1>ngx_l402 — L402 Nginx Module</h1></a>
+<p>An <a href="https://docs.lightning.engineering/the-lightning-network/l402">L402</a> authentication module for Nginx that enables Lightning Network-based monetization for your REST APIs (HTTP/1 and HTTP/2).</p>
+<p>It supports the following Lightning backends:</p>
+<table><thead><tr><th> Backend </th><th> Description </th></tr></thead><tbody>
+<tr><td> <strong>LND</strong> </td><td> Lightning Network Daemon (direct gRPC) </td></tr>
+<tr><td> <strong>LNC</strong> </td><td> Lightning Node Connect (remote LND via mailbox) </td></tr>
+<tr><td> <strong>CLN</strong> </td><td> Core Lightning </td></tr>
+<tr><td> <strong>Eclair</strong> </td><td> Eclair node </td></tr>
+<tr><td> <strong>LNURL</strong> </td><td> Lightning Network URL </td></tr>
+<tr><td> <strong>NWC</strong> </td><td> Nostr Wallet Connect </td></tr>
+<tr><td> <strong>BOLT12</strong> </td><td> Reusable Lightning Offers </td></tr>
+</tbody></table>
+<p>The module can be configured to charge per unique API call, enabling per-endpoint monetization based on request paths.</p>
+<p><img src="https://github.com/user-attachments/assets/3db23ab0-6025-426e-86f8-3505fa0840b9" alt="L402 module demo" /></p>
+<hr />
+<a class="header" href="print.html#how-it-works" id="how-it-works"><h2>How It Works</h2></a>
+<pre><code class="language-mermaid">graph TD;
+    A[Request Received] --&gt; B{Endpoint L402 Enabled?}
+    B --&gt;|No| C[Return 200 OK]
+    B --&gt;|Yes| D{&quot;Any auth header present? (L402 or X-Cashu)&quot;}
+    D --&gt;|No| F[Generate L402 Header macaroon &amp; invoice]
+    D --&gt;|Yes| K[&quot;Parse L402 macaroon/preimage or X-Cashu (if present)&quot;]
+    F --&gt; G{Header Generation Success?}
+    G --&gt;|No| I[Return 500 Internal Server Error]
+    G --&gt;|Yes| H[Add WWW-Authenticate Header]
+    H --&gt; J[Return 402 Payment Required]
+    K --&gt; L{Parse Success?}
+    L --&gt;|No| M[Return 500 Internal Server Error]
+    L --&gt;|Yes| AD{&quot;Auto-detect enabled AND no preimage in header?&quot;}
+    AD --&gt;|Yes| ND[Query Lightning node for settled invoice]
+    ND --&gt; NS{Invoice settled?}
+    NS --&gt;|No| NR[Return 402 Payment Required]
+    NS --&gt;|Yes| NV[&quot;Verify macaroon signature (preimage from node)&quot;]
+    NV --&gt;|Valid| P[Return 200 OK]
+    NV --&gt;|Invalid| Q[Return 401 Unauthorized]
+    AD --&gt;|No / preimage provided| N[&quot;Verify macaroon/preimage OR Cashu proofs (whitelist; P2PK lock if enabled; double-spend check; amount &gt;= price)&quot;]
+    N --&gt; O{Verification Success?}
+    O --&gt;|No| Q
+    O --&gt;|Yes| P
+</code></pre>
+<blockquote>
+<p><strong>Auto-detect</strong>: When <code>l402_auto_detect_payment on</code> is set and the client sends only <code>Authorization: L402 &lt;macaroon&gt;</code> (no preimage), the server queries the Lightning node directly. Supported on <strong>LND</strong>, <strong>CLN</strong>, and <strong>Eclair</strong>.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#quick-start" id="quick-start"><h2>Quick Start</h2></a>
+<blockquote>
+<p><strong>Note</strong>: This module requires <strong>NGINX version 1.28.0</strong> or later.</p>
+</blockquote>
+<p>The fastest way to get started is with Docker:</p>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LNURL \
+  -e LNURL_ADDRESS=username@your-lnurl-server.com \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<p>Then test it:</p>
+<pre><code class="language-bash"># Should return 200 OK
+curl http://localhost:8000/
+
+# Should return 402 Payment Required with L402 header
+curl -i http://localhost:8000/protected
+</code></pre>
+<p>See the <a href="./install-manual.md">Installation</a> section for full setup options.</p>
+<a class="header" href="print.html#manual-installation" id="manual-installation"><h1>Manual Installation</h1></a>
+<blockquote>
+<p><strong>Note</strong>: This module requires <strong>NGINX version 1.28.0</strong> or later. Earlier versions will cause module version mismatch errors.</p>
+</blockquote>
+<a class="header" href="print.html#steps" id="steps"><h2>Steps</h2></a>
+<a class="header" href="print.html#1-download-the-module" id="1-download-the-module"><h3>1. Download the Module</h3></a>
+<p>Download <code>libngx_l402_lib.so</code> from the <a href="https://github.com/DhananjayPurohit/ngx_l402/releases/latest">latest release</a> and copy it to your Nginx modules directory:</p>
+<pre><code class="language-bash">sudo cp libngx_l402_lib.so /etc/nginx/modules/
+</code></pre>
+<a class="header" href="print.html#2-load-the-module-in-nginxconf" id="2-load-the-module-in-nginxconf"><h3>2. Load the Module in nginx.conf</h3></a>
+<pre><code class="language-nginx">load_module /etc/nginx/modules/libngx_l402_lib.so;
+</code></pre>
+<a class="header" href="print.html#3-enable-l402-for-specific-locations" id="3-enable-l402-for-specific-locations"><h3>3. Enable L402 for Specific Locations</h3></a>
+<pre><code class="language-nginx">location /protected {
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+    
+    # L402 module directives:
+    l402 on;
+    l402_amount_msat_default    10000;
+    # Note: Dynamic pricing is handled via Redis using the request path as key
+    # Example: SET /protected 15000 (sets price to 15000 msats for /protected endpoint)
+    l402_macaroon_timeout 3600;  # Macaroon validity in seconds, set to 0 to disable timeout
+    # Optional: per-location LNURL address for multi-tenant setups
+    # l402_lnurl_addr &quot;tenant@your-lnurl-server.com&quot;;
+}
+</code></pre>
+<a class="header" href="print.html#4-set-environment-variables" id="4-set-environment-variables"><h3>4. Set Environment Variables</h3></a>
+<p>Set the following in <code>nginx.service</code> (typically <code>/lib/systemd/system/nginx.service</code>).</p>
+<p>See <a href="./config-env-vars.md">Environment Variables</a> for the complete reference.</p>
+<a class="header" href="print.html#5-set-up-sqlite-database-directory-if-using-cashu" id="5-set-up-sqlite-database-directory-if-using-cashu"><h3>5. Set Up SQLite Database Directory (if using Cashu)</h3></a>
+<pre><code class="language-bash"># One-time setup — persists across restarts
+sudo mkdir -p /var/lib/nginx
+sudo chown nginx:nginx /var/lib/nginx
+sudo chmod 755 /var/lib/nginx
+</code></pre>
+<blockquote>
+<p>The <code>cdk-sqlite</code> crate automatically creates the database file and tables on first run. Database location: <code>/var/lib/nginx/cashu_tokens.db</code></p>
+</blockquote>
+<blockquote>
+<p><strong>Note</strong>: Both <code>restart</code> and <code>reload</code> are needed to ensure the Cashu redemption task starts properly.</p>
+</blockquote>
+<a class="header" href="print.html#6-restart-nginx" id="6-restart-nginx"><h3>6. Restart Nginx</h3></a>
+<pre><code class="language-bash">sudo systemctl restart nginx
+sudo systemctl reload nginx
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: Both <code>restart</code> and <code>reload</code> are needed to ensure the Cashu redemption task starts properly.</p>
+</blockquote>
+<a class="header" href="print.html#macos-local-setup-guide" id="macos-local-setup-guide"><h1>macOS Local Setup Guide</h1></a>
+<p>This guide is for contributors running <code>ngx_l402</code> locally on macOS.</p>
+<a class="header" href="print.html#1-prerequisites" id="1-prerequisites"><h2>1. Prerequisites</h2></a>
+<ul>
+<li><strong>Docker</strong> — make sure the Docker daemon is running.</li>
+<li><strong>Rust</strong> — install via <a href="https://rustup.rs">rustup</a> if not already present:
+<pre><code class="language-bash">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code></pre>
+</li>
+</ul>
+<a class="header" href="print.html#2-clone-and-enter-the-repository" id="2-clone-and-enter-the-repository"><h2>2. Clone and enter the repository</h2></a>
+<pre><code class="language-bash">git clone https://github.com/DhananjayPurohit/ngx_l402.git
+cd ngx_l402
+</code></pre>
+<a class="header" href="print.html#3-start-the-stack" id="3-start-the-stack"><h2>3. Start the stack</h2></a>
+<p>Copy the example env file and start the services:</p>
+<pre><code class="language-bash">cp .env.example .env
+docker compose up -d bitcoind lndnode-receiver redis grpc-content-server nginx-lnd
+</code></pre>
+<p>The first run compiles the module inside a Linux container (multi-stage Dockerfile), so it will take a few minutes. Subsequent runs use the Docker build cache.</p>
+<p>Fund the regtest LND node so it can create invoices:</p>
+<pre><code class="language-bash">docker exec bitcoind bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass createwallet miner 2&gt;/dev/null
+docker exec bitcoind bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -rpcwallet=miner generatetoaddress 101 \
+  $(docker exec bitcoind bitcoin-cli -regtest -rpcuser=user -rpcpassword=pass -rpcwallet=miner getnewaddress) &gt; /dev/null
+sleep 5
+</code></pre>
+<a class="header" href="print.html#4-verify" id="4-verify"><h2>4. Verify</h2></a>
+<pre><code class="language-bash">curl -i http://localhost:8000/protected
+</code></pre>
+<p>Expected: <code>402 Payment Required</code> with a <code>WWW-Authenticate: L402 ...</code> header. If the request hangs, wait a few seconds for LND to finish syncing and try again.</p>
+<a class="header" href="print.html#5-development-workflow" id="5-development-workflow"><h2>5. Development workflow</h2></a>
+<p>After editing the Rust source, rebuild and restart nginx:</p>
+<pre><code class="language-bash">docker compose build nginx-lnd &amp;&amp; docker compose up -d nginx-lnd
+</code></pre>
+<p>Dependencies are cached, so only the module recompiles (~20 seconds).</p>
+<p>You can also run <code>cargo check</code> locally for fast feedback from your editor without rebuilding the container.</p>
+<a class="header" href="print.html#6-useful-commands" id="6-useful-commands"><h2>6. Useful commands</h2></a>
+<pre><code class="language-bash">docker compose ps                    # container status
+docker logs nginx-lnd -f             # nginx logs
+docker compose down                  # stop stack
+</code></pre>
+<a class="header" href="print.html#docker-installation" id="docker-installation"><h1>Docker Installation</h1></a>
+<p>The easiest way to deploy the L402 Nginx module is with our official Docker images.</p>
+<pre><code class="language-bash">docker pull ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<hr />
+<a class="header" href="print.html#quick-start-examples" id="quick-start-examples"><h2>Quick Start Examples</h2></a>
+<a class="header" href="print.html#1-lnurl-backend-simplest-setup" id="1-lnurl-backend-simplest-setup"><h3>1. LNURL Backend (Simplest Setup)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LNURL \
+  -e LNURL_ADDRESS=username@your-lnurl-server.com \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#2-lnd-backend-with-cashu-support" id="2-lnd-backend-with-cashu-support"><h3>2. LND Backend with Cashu Support</h3></a>
+<pre><code class="language-bash">mkdir -p ~/l402-data
+cp ~/.lnd/data/chain/bitcoin/mainnet/admin.macaroon ~/l402-data/
+cp ~/.lnd/tls.cert ~/l402-data/
+
+docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LND \
+  -e LND_ADDRESS=your-lnd-ip:10009 \
+  -e MACAROON_FILE_PATH=/app/data/admin.macaroon \
+  -e CERT_FILE_PATH=/app/data/tls.cert \
+  -e CASHU_ECASH_SUPPORT=true \
+  -e CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot; \
+  -e CASHU_DB_PATH=/app/data/cashu_tokens.db \
+  -e CASHU_WHITELISTED_MINTS=https://mint1.example.com,https://mint2.example.com \
+  -e CASHU_REDEEM_ON_LIGHTNING=true \
+  -e REDIS_URL=redis://redis:6379 \
+  -v ~/l402-data:/app/data \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#3-lnd-via-lightning-node-connect-lnc" id="3-lnd-via-lightning-node-connect-lnc"><h3>3. LND via Lightning Node Connect (LNC)</h3></a>
+<pre><code class="language-bash"># Generate a pairing phrase from Lightning Terminal first:
+# litcli sessions add --label=&quot;nginx-l402&quot; --type=admin
+
+docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LND \
+  -e LNC_PAIRING_PHRASE=&quot;word1 word2 word3 word4 word5 word6 word7 word8 word9 word10&quot; \
+  -e LNC_MAILBOX_SERVER=mailbox.terminal.lightning.today:443 \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#4-cln-backend-core-lightning" id="4-cln-backend-core-lightning"><h3>4. CLN Backend (Core Lightning)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=CLN \
+  -e CLN_LIGHTNING_RPC_FILE_PATH=/app/data/lightning-rpc \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  -e CASHU_ECASH_SUPPORT=true \
+  -e CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot; \
+  -e CASHU_DB_PATH=/app/data/cashu_tokens.db \
+  -v ~/.lightning/bitcoin/lightning-rpc:/app/data/lightning-rpc:ro \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#5-nwc-backend-nostr-wallet-connect" id="5-nwc-backend-nostr-wallet-connect"><h3>5. NWC Backend (Nostr Wallet Connect)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=NWC \
+  -e NWC_URI=nostr+walletconnect://your-pubkey?relay=wss://relay.damus.io&amp;secret=your-secret \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#6-high-performance-p2pk-mode-recommended-for-production" id="6-high-performance-p2pk-mode-recommended-for-production"><h3>6. High-Performance P2PK Mode (Recommended for Production)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=LND \
+  -e LND_ADDRESS=your-lnd-ip:10009 \
+  -e MACAROON_FILE_PATH=/app/data/admin.macaroon \
+  -e CERT_FILE_PATH=/app/data/tls.cert \
+  -e CASHU_ECASH_SUPPORT=true \
+  -e CASHU_P2PK_MODE=true \
+  -e CASHU_P2PK_PRIVATE_KEY=your-32-byte-hex-private-key \
+  -e CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot; \
+  -e CASHU_DB_PATH=/app/data/cashu_tokens.db \
+  -e CASHU_WHITELISTED_MINTS=https://mint1.example.com \
+  -e CASHU_REDEEM_ON_LIGHTNING=true \
+  -e REDIS_URL=redis://redis:6379 \
+  -v ~/l402-data:/app/data \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#7-bolt12-backend-reusable-offers" id="7-bolt12-backend-reusable-offers"><h3>7. BOLT12 Backend (Reusable Offers)</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=BOLT12 \
+  -e BOLT12_OFFER=lno1... \
+  -e CLN_LIGHTNING_RPC_FILE_PATH=/app/data/lightning-rpc \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  -v ~/.lightning/bitcoin/lightning-rpc:/app/data/lightning-rpc:ro \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<a class="header" href="print.html#8-eclair-backend" id="8-eclair-backend"><h3>8. Eclair Backend</h3></a>
+<pre><code class="language-bash">docker run -d \
+  --name l402-nginx \
+  -p 8000:8000 \
+  -e LN_CLIENT_TYPE=ECLAIR \
+  -e ECLAIR_ADDRESS=http://your-eclair-node:8282 \
+  -e ECLAIR_PASSWORD=your-eclair-password \
+  -e ROOT_KEY=your-32-byte-hex-key \
+  ghcr.io/dhananjaypurohit/ngx_l402:latest
+</code></pre>
+<hr />
+<a class="header" href="print.html#generating-required-secrets" id="generating-required-secrets"><h2>Generating Required Secrets</h2></a>
+<pre><code class="language-bash"># ROOT_KEY (required for all setups)
+openssl rand -hex 32
+
+# CASHU_WALLET_MNEMONIC (for Cashu support): a BIP39 phrase, NOT a random hex.
+# Leave it unset to have one generated and saved beside the DB on first run,
+# or generate a 12/24-word phrase with any BIP39 tool.
+
+# CASHU_P2PK_PRIVATE_KEY (for P2PK mode)
+openssl rand -hex 32
+</code></pre>
+<hr />
+<a class="header" href="print.html#testing-your-setup" id="testing-your-setup"><h2>Testing Your Setup</h2></a>
+<pre><code class="language-bash"># Test free endpoint
+curl http://localhost:8000/
+
+# Test protected endpoint (should return 402 with L402 header)
+curl -i http://localhost:8000/protected
+
+# Check container logs
+docker logs l402-nginx -f
+
+# Stop the container
+docker stop l402-nginx
+</code></pre>
+<hr />
+<a class="header" href="print.html#specific-versions" id="specific-versions"><h2>Specific Versions</h2></a>
+<pre><code class="language-bash">docker pull ghcr.io/dhananjaypurohit/ngx_l402:v1.2.5
+</code></pre>
+<a class="header" href="print.html#environment-variables" id="environment-variables"><h1>Environment Variables</h1></a>
+<p>All configuration is done via environment variables set in <code>nginx.service</code> (typically at <code>/lib/systemd/system/nginx.service</code>).</p>
+<pre><code class="language-ini">[Service]
+...
+Environment=VAR_NAME=value
+</code></pre>
+<hr />
+<a class="header" href="print.html#lightning-client-type" id="lightning-client-type"><h2>Lightning Client Type</h2></a>
+<table><thead><tr><th> Variable </th><th> Required </th><th> Description </th></tr></thead><tbody>
+<tr><td> <code>LN_CLIENT_TYPE</code> </td><td> ✅ </td><td> One of: <code>LND</code>, <code>CLN</code>, <code>LNURL</code>, <code>NWC</code>, <code>BOLT12</code>, <code>ECLAIR</code> </td></tr>
+</tbody></table>
+<hr />
+<a class="header" href="print.html#lnd-direct-grpc" id="lnd-direct-grpc"><h2>LND (Direct gRPC)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=LND
+Environment=LND_ADDRESS=your-lnd-ip.com
+Environment=MACAROON_FILE_PATH=/path/to/macaroon
+Environment=CERT_FILE_PATH=/path/to/cert
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="print.html#lnd-via-lightning-node-connect-lnc" id="lnd-via-lightning-node-connect-lnc"><h2>LND via Lightning Node Connect (LNC)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=LND
+Environment=LNC_PAIRING_PHRASE=&lt;10-word-mnemonic-from-litd&gt;
+Environment=LNC_MAILBOX_SERVER=mailbox.terminal.lightning.today:443
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="print.html#cln-core-lightning" id="cln-core-lightning"><h2>CLN (Core Lightning)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=CLN
+Environment=CLN_LIGHTNING_RPC_FILE_PATH=/path/to/lightning-rpc
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="print.html#lnurl" id="lnurl"><h2>LNURL</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=LNURL
+Environment=LNURL_ADDRESS=username@your-lnurl-server.com
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="print.html#nwc-nostr-wallet-connect" id="nwc-nostr-wallet-connect"><h2>NWC (Nostr Wallet Connect)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=NWC
+Environment=NWC_URI=nostr+walletconnect://&lt;pubkey&gt;?relay=&lt;relay_url&gt;&amp;secret=&lt;secret&gt;
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<a class="header" href="print.html#bolt12-reusable-offers" id="bolt12-reusable-offers"><h2>BOLT12 (Reusable Offers)</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=BOLT12
+Environment=BOLT12_OFFER=lno1...
+Environment=CLN_LIGHTNING_RPC_FILE_PATH=/path/to/lightning-rpc
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<blockquote>
+<p><strong>How it works</strong>: When a client requests a protected resource, the module
+connects to your <strong>CLN node</strong> via the Unix socket at <code>CLN_LIGHTNING_RPC_FILE_PATH</code>
+and calls <code>fetchinvoice</code> to derive a fresh single-use <strong>BOLT11 invoice</strong> from
+the reusable BOLT12 offer. The node resolves the offer's embedded node ID and
+negotiates the payment parameters over the Lightning network automatically.
+<code>CLN_LIGHTNING_RPC_FILE_PATH</code> is therefore <strong>required</strong> alongside <code>BOLT12_OFFER</code>.</p>
+</blockquote>
+<a class="header" href="print.html#eclair" id="eclair"><h2>Eclair</h2></a>
+<pre><code class="language-bash">Environment=LN_CLIENT_TYPE=ECLAIR
+Environment=ECLAIR_ADDRESS=http://127.0.0.1:8282
+Environment=ECLAIR_PASSWORD=eclairpass   # REQUIRED — no default; module disables auto-detect if unset
+Environment=ROOT_KEY=your-root-key
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>ECLAIR_PASSWORD</code> is <strong>required</strong> and has no default value.
+If it is not set the Eclair payment-detector is disabled at startup and an
+error is logged. Never use a well-known or placeholder password in production.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#redis-dynamic-pricing--replay-protection" id="redis-dynamic-pricing--replay-protection"><h2>Redis (Dynamic Pricing &amp; Replay Protection)</h2></a>
+<blockquote>
+<p><strong>Strongly recommended in production.</strong> Without Redis, replay protection uses
+in-process caching only — it is lost on restart and does not work across
+multiple nginx workers. Multi-worker deployments <strong>require</strong> Redis.</p>
+</blockquote>
+<pre><code class="language-bash">Environment=REDIS_URL=redis://127.0.0.1:6379
+
+# Connection pool size (default: 4)
+Environment=REDIS_POOL_SIZE=4
+
+# TTL for spent Lightning preimages (default: 86400 = 24 hours)
+Environment=L402_PREIMAGE_TTL_SECONDS=86400
+
+# TTL for spent Cashu tokens (default: 86400 = 24 hours)
+Environment=L402_CASHU_TOKEN_TTL_SECONDS=86400
+</code></pre>
+<a class="header" href="print.html#setting-ttl-to-infinite-permanent-replay-protection" id="setting-ttl-to-infinite-permanent-replay-protection"><h3>Setting TTL to &quot;infinite&quot; (permanent replay protection)</h3></a>
+<p>The module stores spent preimages and Cashu tokens in Redis using
+<code>SET NX EX &lt;seconds&gt;</code>. Redis requires a positive integer for <code>EX</code> — there is
+no built-in &quot;never expire&quot; option via this command.</p>
+<p>To achieve <strong>permanent</strong> replay protection (strongly recommended in production),
+set the TTL to a very large value:</p>
+<pre><code class="language-bash"># ~68 years — effectively permanent
+Environment=L402_PREIMAGE_TTL_SECONDS=2147483647
+Environment=L402_CASHU_TOKEN_TTL_SECONDS=2147483647
+</code></pre>
+<blockquote>
+<p><strong>Trade-off</strong>: Permanent keys accumulate in Redis indefinitely. For a busy
+API with many unique tokens this will grow Redis memory over time. Size each
+key at ~100 bytes; 1 million spent tokens ≈ 100 MB.</p>
+<p><strong>Do not set <code>0</code></strong> — Redis rejects <code>EX 0</code> with an error, which causes the
+module to fail-open and skip the replay check entirely.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#cashu-ecash" id="cashu-ecash"><h2>Cashu eCash</h2></a>
+<pre><code class="language-bash">Environment=CASHU_ECASH_SUPPORT=true
+Environment=CASHU_DB_PATH=/var/lib/nginx/cashu_tokens.db
+# BIP39 wallet mnemonic (the Cashu/NUT-13 backup phrase). Leave unset to have one
+# generated and saved next to the DB on first run (check the logs for the phrase).
+Environment=CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot;
+# Optional: where to persist a generated mnemonic (defaults beside the DB file)
+# Environment=CASHU_WALLET_MNEMONIC_FILE=/var/lib/nginx/wallet.mnemonic
+
+# Optional: Whitelist specific mints (comma-separated)
+# In standard mode: if not set, all mints are accepted
+# In P2PK mode: REQUIRED for security and NUT-24 payment request
+Environment=CASHU_WHITELISTED_MINTS=https://mint1.example.com,https://mint2.example.com
+
+# Optional: Auto-redeem Cashu tokens to Lightning
+Environment=CASHU_REDEEM_ON_LIGHTNING=true
+Environment=CASHU_REDEMPTION_INTERVAL_SECS=3600  # default: 1 hour
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>CASHU_WALLET_MNEMONIC</code> is the BIP39 phrase that derives the wallet seed (NUT-13). It is the only backup of your wallet — anyone with it can steal your tokens, and losing it loses the funds!</p>
+<ul>
+<li>12 or 24 English words; restorable in any NUT-13 wallet (nutshell, cashu-ts, cdk-cli)</li>
+<li>If unset, one is generated and saved beside the DB on first run — <strong>back it up</strong></li>
+<li>On startup the module records a fingerprint of the seed next to the DB and refuses to start if a later mnemonic doesn't match (so a changed/typo'd phrase can't silently orphan a funded wallet); delete the <code>wallet.fingerprint</code> file to switch wallets intentionally</li>
+<li>Never commit it to Git; keep it in a secrets manager</li>
+</ul>
+</blockquote>
+<a class="header" href="print.html#redemption-fee-handling" id="redemption-fee-handling"><h3>Redemption Fee Handling</h3></a>
+<pre><code class="language-bash"># Minimum balance to attempt melting (default: 10 sats)
+Environment=CASHU_MELT_MIN_BALANCE_SATS=10
+
+# Percentage to reserve for fees (default: 1%)
+Environment=CASHU_MELT_FEE_RESERVE_PERCENT=1
+
+# Minimum fee reserve when percentage is small (default: 4 sats)
+Environment=CASHU_MELT_MIN_FEE_RESERVE_SATS=4
+
+# Maximum proofs per melt operation (default: 0 = unlimited)
+# Logic: if proof_count &gt; limit, select first N proofs, rest remain for next cycle
+# Use case: prevent hitting mint proof limits (e.g. mint.coinos.io has 1000 proof limit)
+Environment=CASHU_MAX_PROOFS_PER_MELT=1000
+</code></pre>
+<a class="header" href="print.html#p2pk-mode-high-performance" id="p2pk-mode-high-performance"><h3>P2PK Mode (High Performance)</h3></a>
+<pre><code class="language-bash">Environment=CASHU_P2PK_MODE=true
+Environment=CASHU_P2PK_PRIVATE_KEY=&lt;your-private-key-hex&gt;
+# Public key is derived automatically from the private key
+# CASHU_WHITELISTED_MINTS is REQUIRED in P2PK mode
+Environment=CASHU_REQUIRE_DLEQ=true   # default: true — keep it on
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>CASHU_P2PK_PRIVATE_KEY</code> is equally critical. Anyone with this key can spend tokens locked to your public key!</p>
+<ul>
+<li>Generate with: <code>openssl rand -hex 32</code></li>
+<li>Never commit to Git or share publicly</li>
+<li>Keep it secure alongside <code>CASHU_WALLET_MNEMONIC</code></li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>🔒 NUT-12 DLEQ (<code>CASHU_REQUIRE_DLEQ</code>)</strong>: In P2PK mode, tokens are verified
+on a fast path that <strong>skips the mint swap</strong> for lower latency. DLEQ proofs
+(NUT-12) are what let us confirm offline — using only cached mint keysets —
+that each proof was actually signed by the whitelisted mint. With this check
+off, a forger could submit correctly-shaped, mint-whitelisted proofs that the
+mint never signed and get free service (the operator only finds out at
+redemption time, when the melt fails).</p>
+<ul>
+<li><strong>Default <code>true</code></strong>: a proof with no DLEQ data is rejected. Modern Cashu
+wallets include DLEQ by default, so this is safe.</li>
+<li>Set <code>CASHU_REQUIRE_DLEQ=false</code> only as a temporary safety valve if a
+real-world wallet ships DLEQ-less tokens. This is <strong>insecure</strong> and re-opens
+the forged-proof window above.</li>
+<li>The standard (non-P2PK) mode is unaffected: its mint swap already validates
+proofs authoritatively.</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>🔒 NUT-12 DLEQ (<code>CASHU_REQUIRE_DLEQ</code>)</strong>: In P2PK mode, tokens are verified
+on a fast path that <strong>skips the mint swap</strong> for lower latency. DLEQ proofs
+(NUT-12) are what let us confirm offline — using only cached mint keysets —
+that each proof was actually signed by the whitelisted mint. With this check
+off, a forger could submit correctly-shaped, mint-whitelisted proofs that the
+mint never signed and get free service (the operator only finds out at
+redemption time, when the melt fails).</p>
+<ul>
+<li><strong>Default <code>true</code></strong>: a proof with no DLEQ data is rejected. Modern Cashu
+wallets include DLEQ by default, so this is safe.</li>
+<li>Set <code>CASHU_REQUIRE_DLEQ=false</code> only as a temporary safety valve if a
+real-world wallet ships DLEQ-less tokens. This is <strong>insecure</strong> and re-opens
+the forged-proof window above.</li>
+<li>The standard (non-P2PK) mode is unaffected: its mint swap already validates
+proofs authoritatively.</li>
+</ul>
+</blockquote>
+<p>See <a href="./cashu.md">Cashu eCash</a> for a full explanation of Standard vs P2PK mode and redemption fee examples.</p>
+<hr />
+<a class="header" href="print.html#lnd-via-socks5--tor-proxy" id="lnd-via-socks5--tor-proxy"><h2>LND via SOCKS5 / Tor proxy</h2></a>
+<pre><code class="language-bash"># [Optional] Route LND gRPC through a SOCKS5 proxy
+Environment=SOCKS5_PROXY=socks5://127.0.0.1:9050
+</code></pre>
+<hr />
+<a class="header" href="print.html#capability-manifest-metadata" id="capability-manifest-metadata"><h2>Capability Manifest Metadata</h2></a>
+<p>These optional variables populate the <code>service</code> block in <code>/.well-known/l402-services</code>.
+All are omitted from the manifest JSON when unset.</p>
+<pre><code class="language-bash">Environment=L402_SERVICE_NAME=My API
+Environment=L402_SERVICE_DESCRIPTION=Premium data, paid per request.
+Environment=L402_SERVICE_OPERATOR=npub1...   # Nostr pubkey, DID, or free-form
+Environment=L402_SERVICE_CONTACT=ops@example.com
+</code></pre>
+<p>See <a href="./manifest.md">Capability Manifest</a> for the full manifest spec.</p>
+<hr />
+<a class="header" href="print.html#logging" id="logging"><h2>Logging</h2></a>
+<pre><code class="language-bash">Environment=RUST_LOG=info
+# For module-specific debug logs:
+Environment=RUST_LOG=ngx_l402_lib=debug,info
+
+# Log per-request performance timing (set to any non-empty value to enable)
+Environment=L402_PERF_LOG=1
+</code></pre>
+<hr />
+<a class="header" href="print.html#nginx-location-directives" id="nginx-location-directives"><h2>Nginx Location Directives</h2></a>
+<p>These are set inside <code>location {}</code> blocks in <code>nginx.conf</code> (not environment variables).</p>
+<table><thead><tr><th> Directive </th><th> Type </th><th> Default </th><th> Description </th></tr></thead><tbody>
+<tr><td> <code>l402</code> </td><td> boolean¹ </td><td> <code>off</code> </td><td> Enable L402 protection for this location </td></tr>
+<tr><td> <code>l402_amount_msat_default</code> </td><td> integer </td><td> — </td><td> Price in millisatoshis (overridden by Redis dynamic pricing) </td></tr>
+<tr><td> <code>l402_macaroon_timeout</code> </td><td> integer (seconds) </td><td> <code>0</code> (disabled) </td><td> Macaroon validity window; <code>0</code> = no expiry </td></tr>
+<tr><td> <code>l402_lnurl_addr</code> </td><td> string </td><td> — </td><td> Per-location LNURL address for multi-tenant setups </td></tr>
+<tr><td> <code>l402_invoice_rate_limit</code> </td><td> <code>&lt;N&gt;r/m</code> or <code>&lt;N&gt;r/s</code> </td><td> disabled </td><td> Max invoice generation rate per IP per route </td></tr>
+<tr><td> <code>l402_auto_detect_payment</code> </td><td> boolean¹ </td><td> <code>off</code> </td><td> Server-side payment detection — queries the Lightning node instead of requiring the client to supply the preimage </td></tr>
+<tr><td> <code>l402_indefinite_access</code> </td><td> boolean¹ </td><td> <code>off</code> </td><td> Skip the single-use preimage replay check — a single payment stays valid for the macaroon lifetime </td></tr>
+</tbody></table>
+<blockquote>
+<p>¹ <strong>Boolean directives</strong> accept: <code>on</code> / <code>off</code> / <code>true</code> / <code>false</code> / <code>1</code> / <code>0</code> / <code>yes</code> / <code>no</code> (case-insensitive).</p>
+</blockquote>
+<a class="header" href="print.html#example-auto-detect-enabled-location" id="example-auto-detect-enabled-location"><h3>Example: auto-detect enabled location</h3></a>
+<pre><code class="language-nginx">location /protected {
+    l402                         on;
+    l402_amount_msat_default     10000;
+    l402_macaroon_timeout        0;
+    l402_auto_detect_payment     on;
+
+    try_files /index.html =404;
+}
+</code></pre>
+<a class="header" href="print.html#example-subscription-style-indefinite-access" id="example-subscription-style-indefinite-access"><h3>Example: subscription-style (indefinite) access</h3></a>
+<pre><code class="language-nginx">location /subscriber-only {
+    l402                         on;
+    l402_amount_msat_default     100000;
+    l402_macaroon_timeout        2592000;  # 30 days
+    l402_indefinite_access       on;       # single payment stays valid until macaroon expires
+
+    try_files /index.html =404;
+}
+</code></pre>
+<blockquote>
+<p><strong>Warning</strong>: <code>l402_indefinite_access on</code> should always be paired with a non-zero
+<code>l402_macaroon_timeout</code>. Without an expiry, the macaroon never expires and the
+same preimage grants access forever.</p>
+</blockquote>
+<blockquote>
+<p><strong>Backends that support auto-detect</strong>: <code>LND</code>, <code>CLN</code>, <code>BOLT12</code>, <code>ECLAIR</code>.
+<code>LNC</code>, <code>NWC</code>, and <code>LNURL</code> do <strong>not</strong> support server-side lookup.</p>
+</blockquote>
+<a class="header" href="print.html#redis--dynamic-configuration" id="redis--dynamic-configuration"><h1>Redis &amp; Dynamic Configuration</h1></a>
+<p>The module supports real-time configuration updates via Redis <strong>without requiring an Nginx reload</strong>.</p>
+<a class="header" href="print.html#setup" id="setup"><h2>Setup</h2></a>
+<pre><code class="language-bash">Environment=REDIS_URL=redis://127.0.0.1:6379
+</code></pre>
+<hr />
+<a class="header" href="print.html#dynamic-pricing" id="dynamic-pricing"><h2>Dynamic Pricing</h2></a>
+<p>Set the price for a specific path in Redis. Changes are picked up immediately by the next request.</p>
+<pre><code class="language-bash"># Set price to 1000 msats for /api/resource
+SET /api/resource 1000
+
+# Set price to 5000 msats for /api/premium
+SET /api/premium 5000
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>: If no Redis key exists for a path, the module falls back to <code>l402_amount_msat_default</code> in <code>nginx.conf</code>.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#dynamic-lnurl-per-tenant-routing" id="dynamic-lnurl-per-tenant-routing"><h2>Dynamic LNURL (Per-Tenant Routing)</h2></a>
+<p>Override the LNURL address for a specific request path. This takes precedence over <code>l402_lnurl_addr</code> in <code>nginx.conf</code>.</p>
+<p><strong>Key format</strong>: <code>lnurl:&lt;request_path&gt;</code></p>
+<pre><code class="language-bash"># Route /api/tenant1 payments to alice
+SET lnurl:/api/tenant1 alice@getalby.com
+
+# Route /api/tenant2 payments to bob
+SET lnurl:/api/tenant2 bob@getalby.com
+</code></pre>
+<hr />
+<a class="header" href="print.html#replay-attack-prevention" id="replay-attack-prevention"><h2>Replay Attack Prevention</h2></a>
+<p>Redis is used to enforce single-use of L402 preimages and Cashu tokens, preventing replay attacks across distributed deployments.</p>
+<pre><code class="language-bash">Environment=REDIS_URL=redis://127.0.0.1:6379
+Environment=L402_PREIMAGE_TTL_SECONDS=86400      # Default: 24 hours
+Environment=L402_CASHU_TOKEN_TTL_SECONDS=86400   # Default: 24 hours
+</code></pre>
+<p><strong>How it works</strong>: After successful verification, SHA256 hashes of preimages/tokens are stored in Redis with a TTL. Subsequent use of the same credential is rejected with <code>401</code>. Protection persists across Nginx restarts and works with multiple Nginx instances.</p>
+<hr />
+<a class="header" href="print.html#invoice-rate-limiting" id="invoice-rate-limiting"><h2>Invoice Rate Limiting</h2></a>
+<p>Limits how many invoices (402 responses) a single IP can request per route within a time window. This protects your Lightning node from invoice-spam without affecting clients that hold a valid token.</p>
+<pre><code class="language-nginx">location /api/resource {
+    l402 on;
+    l402_amount_msat_default 1000;
+    l402_invoice_rate_limit 5r/m;   # 5 invoices per minute per IP
+}
+</code></pre>
+<p><strong>Supported formats</strong>:</p>
+<table><thead><tr><th> Value </th><th> Limit </th></tr></thead><tbody>
+<tr><td> <code>5r/m</code> </td><td> 5 per minute </td></tr>
+<tr><td> <code>10r/h</code> </td><td> 10 per hour </td></tr>
+<tr><td> <code>2r/s</code> </td><td> 2 per second </td></tr>
+<tr><td> <code>5</code> </td><td> 5 per minute (shorthand) </td></tr>
+</tbody></table>
+<p>Requests that exceed the limit receive <code>429 Too Many Requests</code> with a <code>Retry-After</code> header set to the window duration.</p>
+<p>The rate limit only applies to unauthenticated requests (those that would result in a 402). Requests presenting a valid L402 token bypass it entirely.</p>
+<p><strong>How it works</strong>: Uses a fixed-window Redis counter (<code>INCR</code> + <code>EXPIRE</code> on first hit) keyed by IP and path. Fails open — if Redis is unavailable, rate limiting is disabled and traffic passes through normally.</p>
+<a class="header" href="print.html#multi-tenant-configuration" id="multi-tenant-configuration"><h1>Multi-Tenant Configuration</h1></a>
+<p>The module supports <strong>multi-tenant mode</strong>, allowing different API routes to use different Lightning/LNURL backends. This is useful for platforms hosting multiple merchants or services, where each tenant receives payments to their own wallet.</p>
+<blockquote>
+<p><strong>Current Support</strong>: Multi-tenant is currently supported for <strong>Cashu eCash payments only</strong> when using <code>LN_CLIENT_TYPE=LNURL</code>.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#how-it-works-1" id="how-it-works-1"><h2>How It Works</h2></a>
+<ol>
+<li><strong>Per-location LNURL addresses</strong>: Use the <code>l402_lnurl_addr</code> directive to specify a different LNURL address per Nginx location block.</li>
+<li><strong>Proof tracking</strong>: When a Cashu token is received, the proofs are mapped to the tenant's LNURL address in Redis.</li>
+<li><strong>Grouped redemption</strong>: The automatic redemption task groups proofs by tenant and redeems each group to the correct LNURL address.</li>
+</ol>
+<hr />
+<a class="header" href="print.html#nginx-configuration" id="nginx-configuration"><h2>Nginx Configuration</h2></a>
+<pre><code class="language-nginx"># Tenant 1 — payments go to alice@getalby.com
+location /api/tenant1 {
+    l402 on;
+    l402_amount_msat_default 10000;
+    l402_macaroon_timeout 0;
+    l402_lnurl_addr &quot;alice@getalby.com&quot;;
+}
+
+# Tenant 2 — payments go to bob@getalby.com
+location /api/tenant2 {
+    l402 on;
+    l402_amount_msat_default 15000;
+    l402_macaroon_timeout 0;
+    l402_lnurl_addr &quot;bob@getalby.com&quot;;
+}
+
+# Tenant 3 — self-hosted LNURL server
+location /api/tenant3 {
+    l402 on;
+    l402_amount_msat_default 5000;
+    l402_macaroon_timeout 0;
+    l402_lnurl_addr &quot;user@your-lnurl-server.com&quot;;
+}
+</code></pre>
+<hr />
+<a class="header" href="print.html#required-environment-variables" id="required-environment-variables"><h2>Required Environment Variables</h2></a>
+<pre><code class="language-bash"># Use LNURL client type
+Environment=LN_CLIENT_TYPE=LNURL
+
+# Default LNURL address (fallback when l402_lnurl_addr is not set)
+Environment=LNURL_ADDRESS=default@your-domain.com
+
+# Redis is required for proof-to-tenant mapping
+Environment=REDIS_URL=redis://127.0.0.1:6379
+
+# Enable Cashu eCash support
+Environment=CASHU_ECASH_SUPPORT=true
+Environment=CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot;
+Environment=CASHU_WHITELISTED_MINTS=https://mint.example.com
+
+# Enable automatic redemption to Lightning
+Environment=CASHU_REDEEM_ON_LIGHTNING=true
+Environment=CASHU_REDEMPTION_INTERVAL_SECS=60
+</code></pre>
+<hr />
+<a class="header" href="print.html#dynamic-lnurl-override-via-redis" id="dynamic-lnurl-override-via-redis"><h2>Dynamic LNURL Override via Redis</h2></a>
+<p>You can also override the LNURL address per path dynamically without reloading Nginx:</p>
+<pre><code class="language-bash">SET lnurl:/api/tenant1 alice@getalby.com
+SET lnurl:/api/tenant2 bob@getalby.com
+</code></pre>
+<p>See <a href="./config-redis.md">Redis &amp; Dynamic Config</a> for more details.</p>
+<a class="header" href="print.html#lightning-network-payments" id="lightning-network-payments"><h1>Lightning Network Payments</h1></a>
+<p>ngx_l402 implements the <a href="https://docs.lightning.engineering/the-lightning-network/l402">L402 protocol</a>, enabling API monetization via <strong>Lightning Network payments</strong>. When a client hits a protected endpoint without a valid token, the module responds with <code>402 Payment Required</code> and a Lightning invoice. The client pays the invoice, receives a preimage, and presents it alongside the macaroon to gain access.</p>
+<hr />
+<a class="header" href="print.html#supported-backends" id="supported-backends"><h2>Supported Backends</h2></a>
+<p>Configure the backend via the <code>LN_CLIENT_TYPE</code> environment variable:</p>
+<table><thead><tr><th> <code>LN_CLIENT_TYPE</code> </th><th> Description </th></tr></thead><tbody>
+<tr><td> <code>LND</code> </td><td> Lightning Network Daemon — direct gRPC connection </td></tr>
+<tr><td> <code>LNC</code> </td><td> Lightning Node Connect — remote LND via mailbox (no open port needed) </td></tr>
+<tr><td> <code>CLN</code> </td><td> Core Lightning </td></tr>
+<tr><td> <code>ECLAIR</code> </td><td> Eclair node </td></tr>
+<tr><td> <code>LNURL</code> </td><td> Lightning Network URL — delegate invoice generation to an LNURL server </td></tr>
+<tr><td> <code>NWC</code> </td><td> Nostr Wallet Connect </td></tr>
+<tr><td> <code>BOLT12</code> </td><td> Reusable Lightning Offers (BOLT12) </td></tr>
+</tbody></table>
+<p>See <a href="./config-env-vars.md">Environment Variables</a> for the full list of per-backend settings.</p>
+<hr />
+<a class="header" href="print.html#payment-flow" id="payment-flow"><h2>Payment Flow</h2></a>
+<ol>
+<li>Client requests a protected endpoint (no auth header).</li>
+<li>Module generates a macaroon and requests an invoice from the configured Lightning backend.</li>
+<li>Module responds <code>402 Payment Required</code> with:
+<pre><code>WWW-Authenticate: L402 macaroon=&quot;&lt;macaroon&gt;&quot;, invoice=&quot;&lt;bolt11&gt;&quot;
+</code></pre>
+</li>
+<li>Client pays the invoice and obtains the <strong>preimage</strong>.</li>
+<li>Client retries with:
+<pre><code>Authorization: L402 &lt;macaroon&gt;:&lt;preimage&gt;
+</code></pre>
+</li>
+<li>Module verifies the macaroon + preimage and returns <code>200 OK</code>.</li>
+</ol>
+<hr />
+<a class="header" href="print.html#authorization-header-format" id="authorization-header-format"><h2>Authorization Header Format</h2></a>
+<p>Two formats are accepted:</p>
+<table><thead><tr><th> Format </th><th> Header value </th><th> When to use </th></tr></thead><tbody>
+<tr><td> <strong>Classic</strong> </td><td> <code>L402 &lt;macaroon&gt;:&lt;preimage_hex&gt;</code> </td><td> Client has the preimage (standard wallet flow) </td></tr>
+<tr><td> <strong>Auto-detect</strong> </td><td> <code>L402 &lt;macaroon&gt;</code> </td><td> Server queries the node; no preimage needed from client </td></tr>
+</tbody></table>
+<blockquote>
+<p>The preimage in the classic format must be the <strong>32-byte (256-bit) hex-encoded payment preimage</strong> corresponding to the invoice's <code>payment_hash</code>.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#auto-detect-payment-server-side-settlement-lookup" id="auto-detect-payment-server-side-settlement-lookup"><h2>Auto-Detect Payment (Server-Side Settlement Lookup)</h2></a>
+<p>With <strong>auto-detect</strong> enabled the client only needs to send the macaroon — no preimage required. The module queries your Lightning node directly to check whether the invoice is settled and retrieves the preimage from the node.</p>
+<a class="header" href="print.html#enabling-auto-detect" id="enabling-auto-detect"><h3>Enabling auto-detect</h3></a>
+<p>Add <code>l402_auto_detect_payment on</code> to any <code>location {}</code> block:</p>
+<pre><code class="language-nginx">location /protected {
+    l402                         on;
+    l402_amount_msat_default     10000;
+    l402_macaroon_timeout        0;
+    l402_auto_detect_payment     on;   # ← enables server-side lookup
+}
+</code></pre>
+<p>All boolean directives (<code>l402</code>, <code>l402_auto_detect_payment</code>) accept: <code>on</code> / <code>off</code> / <code>true</code> / <code>false</code> / <code>1</code> / <code>0</code> / <code>yes</code> / <code>no</code> (case-insensitive).</p>
+<a class="header" href="print.html#client-flow-with-auto-detect-enabled" id="client-flow-with-auto-detect-enabled"><h3>Client flow with auto-detect enabled</h3></a>
+<ol>
+<li>Client requests a protected endpoint → receives <code>402 Payment Required</code> with a BOLT-11 invoice.</li>
+<li>Client pays the invoice (no preimage handling needed).</li>
+<li>Client retries with just the macaroon:
+<pre><code>Authorization: L402 &lt;macaroon&gt;
+</code></pre>
+</li>
+<li>Module extracts the <code>payment_hash</code> from the macaroon identifier, queries the node, and — if the invoice is settled — uses the returned preimage to verify the macaroon signature.</li>
+<li>On success the module returns <code>200 OK</code>. If the invoice is not yet settled, it returns <code>402 Payment Required</code>.</li>
+</ol>
+<a class="header" href="print.html#preimage-caching-redis" id="preimage-caching-redis"><h3>Preimage caching (Redis)</h3></a>
+<p>When Redis is configured (<code>REDIS_URL</code>), settled preimages are cached under the key <code>l402:settled:&lt;payment_hash_hex&gt;</code>. Subsequent requests for the same payment hash are served from the cache, avoiding repeated node round-trips.</p>
+<a class="header" href="print.html#backend-support-matrix" id="backend-support-matrix"><h3>Backend support matrix</h3></a>
+<table><thead><tr><th> <code>LN_CLIENT_TYPE</code> </th><th> Auto-detect supported </th><th> Notes </th></tr></thead><tbody>
+<tr><td> <code>LND</code> </td><td> ✅ </td><td> Uses <code>LookupInvoice</code> gRPC </td></tr>
+<tr><td> <code>CLN</code> / <code>BOLT12</code> </td><td> ✅ </td><td> Uses <code>listinvoices</code> JSON-RPC over unix socket </td></tr>
+<tr><td> <code>ECLAIR</code> </td><td> ✅ </td><td> Uses <code>POST /getreceivedinfo</code> REST API </td></tr>
+<tr><td> <code>LNC</code> </td><td> ❌ </td><td> LNC mailbox does not expose <code>LookupInvoice</code> </td></tr>
+<tr><td> <code>NWC</code> </td><td> ❌ </td><td> <code>lookup_invoice</code> is optional in NIP-47 </td></tr>
+<tr><td> <code>LNURL</code> </td><td> ❌ </td><td> Remote wallet — no server-side query API </td></tr>
+</tbody></table>
+<blockquote>
+<p>[!NOTE]
+Even when <code>l402_auto_detect_payment on</code> is set, the classic <code>L402 &lt;macaroon&gt;:&lt;preimage&gt;</code> format is still accepted — auto-detect only activates when the client omits the preimage.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#wallet-compatibility" id="wallet-compatibility"><h2>Wallet Compatibility</h2></a>
+<blockquote>
+<p>[!WARNING]
+Some wallets (e.g. <a href="https://www.walletofsatoshi.com/">Wallet of Satoshi</a>) return <strong>48-byte non-standard preimages</strong>, which are <strong>not compatible</strong> with this module. Use a wallet that returns a standard 32-byte preimage.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#also-supported-cashu-ecash" id="also-supported-cashu-ecash"><h2>Also Supported: Cashu eCash</h2></a>
+<p>In addition to Lightning, the module accepts <strong>Cashu eCash tokens</strong> via the <code>X-Cashu</code> header as an alternative payment method. See <a href="./cashu.md">Cashu eCash Support</a> for details.</p>
+<a class="header" href="print.html#cashu-ecash-1" id="cashu-ecash-1"><h1>Cashu eCash</h1></a>
+<p>The module supports <a href="https://cashu.space">Cashu</a> eCash tokens as an alternative payment method to Lightning invoices.</p>
+<hr />
+<a class="header" href="print.html#standard-mode-vs-p2pk-mode" id="standard-mode-vs-p2pk-mode"><h2>Standard Mode vs P2PK Mode</h2></a>
+<table><thead><tr><th> </th><th> Standard Mode </th><th> P2PK Mode </th></tr></thead><tbody>
+<tr><td> <strong>How it works</strong> </td><td> Calls <code>wallet.receive()</code> → contacts mint to swap tokens </td><td> Verifies token locked to proxy's public key locally </td></tr>
+<tr><td> <strong>Speed</strong> </td><td> Slower (blocks on mint API call per request) </td><td> Fast (milliseconds — no mint call!) </td></tr>
+<tr><td> <strong>Best for</strong> </td><td> Low-traffic or simple setups </td><td> High-traffic production deployments </td></tr>
+<tr><td> <strong>Extra requirement</strong> </td><td> None </td><td> <code>CASHU_WHITELISTED_MINTS</code> is required </td></tr>
+</tbody></table>
+<hr />
+<a class="header" href="print.html#standard-mode-setup" id="standard-mode-setup"><h2>Standard Mode Setup</h2></a>
+<pre><code class="language-bash">Environment=CASHU_ECASH_SUPPORT=true
+Environment=CASHU_DB_PATH=/var/lib/nginx/cashu_tokens.db
+# BIP39 wallet mnemonic (NUT-13 backup phrase); unset = auto-generated on first run
+Environment=CASHU_WALLET_MNEMONIC=&quot;word1 word2 ... word12&quot;
+
+# Optional: Whitelist specific mints (comma-separated)
+Environment=CASHU_WHITELISTED_MINTS=https://mint1.example.com,https://mint2.example.com
+
+# Optional: Auto-redeem to Lightning
+Environment=CASHU_REDEEM_ON_LIGHTNING=true
+Environment=CASHU_REDEMPTION_INTERVAL_SECS=3600
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>CASHU_WALLET_MNEMONIC</code> is the BIP39 phrase that derives the wallet seed (NUT-13) — the only backup of your wallet. Anyone with it can steal your tokens, and losing it loses the funds. It's a 12/24-word phrase (not a hex secret); leave it unset to auto-generate and persist one on first run, and never commit it to Git. On startup the module records a seed fingerprint next to the DB and refuses to start if a later mnemonic doesn't match — delete <code>wallet.fingerprint</code> to switch wallets intentionally.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#p2pk-mode-setup-high-performance" id="p2pk-mode-setup-high-performance"><h2>P2PK Mode Setup (High Performance)</h2></a>
+<pre><code class="language-bash">Environment=CASHU_P2PK_MODE=true
+Environment=CASHU_P2PK_PRIVATE_KEY=&lt;your-private-key-hex&gt;
+# CASHU_WHITELISTED_MINTS is REQUIRED in P2PK mode
+Environment=CASHU_WHITELISTED_MINTS=https://mint1.example.com
+</code></pre>
+<blockquote>
+<p><strong>⚠️ Security</strong>: <code>CASHU_P2PK_PRIVATE_KEY</code> is equally critical. Anyone with this key can spend tokens locked to your public key. Generate with <code>openssl rand -hex 32</code>.</p>
+</blockquote>
+<p><strong>How P2PK mode works per request:</strong></p>
+<ol>
+<li>Proxy derives a public key from <code>CASHU_P2PK_PRIVATE_KEY</code> and sends it to clients via the <code>X-Cashu</code> header (NUT-24)</li>
+<li>Client creates P2PK-locked tokens to that public key</li>
+<li>Proxy verifies tokens are locked to its public key (NUT-11) — local check, no network call</li>
+<li>Proxy unlocks proofs with private key (local cryptographic operation)</li>
+<li>Unlocked proofs are stored directly in CDK database via <code>wallet.receive_proofs()</code></li>
+<li>Background redemption task finds proofs via <code>wallet.get_unspent_proofs()</code> and redeems to Lightning via <code>wallet.melt()</code></li>
+</ol>
+<hr />
+<a class="header" href="print.html#redemption-fee-configuration" id="redemption-fee-configuration"><h2>Redemption Fee Configuration</h2></a>
+<pre><code class="language-bash"># Minimum balance to attempt melting (default: 10 sats)
+Environment=CASHU_MELT_MIN_BALANCE_SATS=10
+
+# Percentage to reserve for fees (default: 1%)
+Environment=CASHU_MELT_FEE_RESERVE_PERCENT=1
+
+# Minimum fee reserve when percentage is small (default: 4 sats)
+Environment=CASHU_MELT_MIN_FEE_RESERVE_SATS=4
+
+# Maximum proofs per melt operation (default: 0 = unlimited)
+# Use this if your mint has a per-melt proof limit (e.g. mint.coinos.io = 1000)
+Environment=CASHU_MAX_PROOFS_PER_MELT=1000
+</code></pre>
+<p><strong>Fee calculation</strong>: <code>fee_reserve = max(total_amount × percent/100, min_fee_sats)</code></p>
+<p><strong>Example 1</strong> — Large balance (500 sats) with 1% fee reserve:</p>
+<ul>
+<li>Percentage fee: <code>500 × 1% = 5 sats</code></li>
+<li>Minimum fee: <code>4 sats</code></li>
+<li>Used reserve: <code>max(5, 4) = 5 sats</code></li>
+<li>Redeemable: <code>500 - 5 = 495 sats</code></li>
+</ul>
+<p><strong>Example 2</strong> — Small balance (50 sats) with 1% fee reserve:</p>
+<ul>
+<li>Percentage fee: <code>50 × 1% = 0.5 sats</code></li>
+<li>Minimum fee: <code>4 sats</code></li>
+<li>Used reserve: <code>max(0.5, 4) = 4 sats</code> ← Minimum kicks in!</li>
+<li>Redeemable: <code>50 - 4 = 46 sats</code></li>
+</ul>
+<p><strong>Example 3</strong> — Proof count limiting when exceeding mint limit (<code>CASHU_MAX_PROOFS_PER_MELT=1000</code>):</p>
+<ul>
+<li><strong>Scenario</strong>: 1282 proofs worth 13,588 sats total</li>
+<li><strong>Check</strong>: <code>1282 proofs &gt; 1000 limit</code> → Limiting triggered</li>
+<li><strong>Action</strong>: Select first 1000 proofs worth ~10,600 sats</li>
+<li><strong>Invoice</strong>: Generate invoice for 10,600 sats</li>
+<li><strong>Remaining</strong>: 282 proofs (~2,988 sats) stay for next cycle</li>
+<li><strong>Next cycle</strong>: <code>282 proofs &lt; 1000 limit</code> → all remaining proofs melted</li>
+</ul>
+<blockquote>
+<p>Actual melt quote fees are verified against the reserve; warnings appear if the reserve was insufficient.</p>
+</blockquote>
+<blockquote>
+<p><strong>Note on <code>CASHU_WHITELISTED_MINTS</code></strong>: If not configured, all mints are accepted in standard mode. <strong>In P2PK mode, whitelisted mints are REQUIRED</strong> for security and the payment request (NUT-24).</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#sqlite-database-setup" id="sqlite-database-setup"><h2>SQLite Database Setup</h2></a>
+<pre><code class="language-bash"># One-time setup — persists across restarts
+sudo mkdir -p /var/lib/nginx
+sudo chown nginx:nginx /var/lib/nginx
+sudo chmod 755 /var/lib/nginx
+</code></pre>
+<p>The <code>cdk-sqlite</code> crate automatically creates the database file and tables. Database location: <code>/var/lib/nginx/cashu_tokens.db</code></p>
+<a class="header" href="print.html#building-from-source" id="building-from-source"><h1>Building from Source</h1></a>
+<a class="header" href="print.html#prerequisites" id="prerequisites"><h2>Prerequisites</h2></a>
+<p>Install required system dependencies:</p>
+<pre><code class="language-bash">sudo apt-get install -y \
+  build-essential \
+  clang \
+  libclang-dev \
+  libc6-dev \
+  zlib1g-dev \
+  pkg-config \
+  libssl-dev \
+  protobuf-compiler \
+  nginx
+</code></pre>
+<p>Install Rust and Cargo:</p>
+<pre><code class="language-bash">curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+</code></pre>
+<hr />
+<a class="header" href="print.html#build-steps" id="build-steps"><h2>Build Steps</h2></a>
+<ol>
+<li>Clone the repository:</li>
+</ol>
+<pre><code class="language-bash">git clone https://github.com/DhananjayPurohit/ngx_l402.git
+cd ngx_l402
+</code></pre>
+<ol start="2">
+<li>Download Nginx source and build the module:</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>Important</strong>: You must download the exact Nginx source code matching your target version and set the <code>NGINX_SOURCE_DIR</code> environment variable before building.</p>
+</blockquote>
+<pre><code class="language-bash"># Example for Nginx 1.28.0
+curl -fsSL http://nginx.org/download/nginx-1.28.0.tar.gz -o nginx.tar.gz
+tar -xzf nginx.tar.gz
+cd nginx-1.28.0
+./configure --with-compat
+cd ..
+export NGINX_SOURCE_DIR=$(pwd)/nginx-1.28.0
+
+cargo build --release --features export-modules
+</code></pre>
+<p>The compiled module will be at <code>target/release/libngx_l402_lib.so</code>.</p>
+<ol start="3">
+<li>Copy to your Nginx modules directory:</li>
+</ol>
+<pre><code class="language-bash">sudo cp target/release/libngx_l402_lib.so /etc/nginx/modules/
+</code></pre>
+<ol start="4">
+<li>Follow the remaining <a href="./install-manual.md">manual installation steps</a>.</li>
+</ol>
+<a class="header" href="print.html#logging-1" id="logging-1"><h1>Logging</h1></a>
+<a class="header" href="print.html#view-logs" id="view-logs"><h2>View Logs</h2></a>
+<a class="header" href="print.html#systemd--manual-install" id="systemd--manual-install"><h3>systemd / Manual Install</h3></a>
+<pre><code class="language-bash"># Module initialization and system logs
+sudo journalctl -u nginx
+
+# Nginx error logs (real-time)
+sudo tail -f /var/log/nginx/error.log
+
+# Cashu redemption logs
+sudo tail -f /var/log/nginx/cashu_redemption.log
+</code></pre>
+<a class="header" href="print.html#docker" id="docker"><h3>Docker</h3></a>
+<pre><code class="language-bash">docker logs l402-nginx -f
+</code></pre>
+<hr />
+<a class="header" href="print.html#log-levels" id="log-levels"><h2>Log Levels</h2></a>
+<p>Control verbosity via the <code>RUST_LOG</code> environment variable:</p>
+<pre><code class="language-bash"># Standard info logs (recommended for production)
+Environment=RUST_LOG=info
+
+# Detailed debug logs for all modules
+Environment=RUST_LOG=debug
+
+# Module-specific debug logs only (reduces noise)
+Environment=RUST_LOG=ngx_l402_lib=debug,info
+</code></pre>
+<a class="header" href="print.html#dry-run-shadow-mode" id="dry-run-shadow-mode"><h1>Dry-Run (Shadow) Mode</h1></a>
+<p>Shadow mode lets operators roll out L402 enforcement safely. With
+<code>l402_dry_run on;</code> set on a location, the module evaluates the full pricing
+pipeline, synthesises a valid L402 challenge, and records structured logs
+and Prometheus metrics — but <strong>always passes the request through to the
+upstream</strong>. No client ever sees <code>401</code> or <code>402</code>.</p>
+<p>This is the recommended way to validate pricing, LN backend reachability,
+and traffic patterns with real production traffic before flipping a route
+to enforcement.</p>
+<hr />
+<a class="header" href="print.html#enabling-shadow-mode" id="enabling-shadow-mode"><h2>Enabling shadow mode</h2></a>
+<pre><code class="language-nginx">location /api/ {
+    l402                        on;
+    l402_amount_msat_default    10000;
+    l402_dry_run                on;          # evaluate, log, never block
+    proxy_pass                  http://upstream;
+}
+</code></pre>
+<p><code>l402_dry_run</code> accepts <code>on</code> or <code>off</code> (default). It can be combined with any
+other <code>l402_*</code> directive — dynamic pricing from Redis, multi-tenant LNURLs,
+macaroon timeouts, invoice rate limits — so the shadow-mode numbers you
+measure match the configuration you are about to enforce.</p>
+<p><code>l402</code> must still be <code>on</code> for the module to enter the access handler.
+Turning <code>l402</code> off disables the module entirely, including shadow mode.</p>
+<hr />
+<a class="header" href="print.html#what-happens-per-request" id="what-happens-per-request"><h2>What happens per request</h2></a>
+<p>For every request reaching a shadow-mode location, the module:</p>
+<ol>
+<li>Reads the static and dynamic (Redis) price for the route and picks the
+effective <code>amount_msat</code>.</li>
+<li>Looks up any per-tenant LNURL override.</li>
+<li>Verifies the <code>Authorization</code> header if one is present (L402 or Cashu).</li>
+<li>If no valid token is present, calls the configured LN backend and
+generates a real invoice + macaroon — exactly the challenge enforce
+mode would have returned.</li>
+<li>Emits a structured JSON log line and bumps the relevant Prometheus
+counters.</li>
+<li>Returns <code>NGX_DECLINED</code>, so Nginx continues to the content phase and
+serves the upstream response with its natural status code.</li>
+</ol>
+<blockquote>
+<p><strong>Cost note</strong>: generating a challenge contacts your LN backend on every
+unauthenticated request. If you have high traffic, start by enabling
+shadow mode on a sampled location (e.g. a canary route) before rolling
+it out everywhere.</p>
+<p><strong>Latency cap</strong>: the challenge-synthesis call is bounded by a 5-second
+timeout. If the LN backend does not respond within that window the
+request still passes through (with no <code>X-L402-Dry-Run-Challenge</code>
+header) and <code>l402_dry_run_challenge_errors_total</code> is incremented —
+shadow mode must never add latency to user-facing traffic.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#response-headers" id="response-headers"><h2>Response headers</h2></a>
+<p>Shadow mode attaches debug headers to the upstream response so operators
+can inspect what would have happened without scraping logs:</p>
+<table><thead><tr><th> Header </th><th> Meaning </th></tr></thead><tbody>
+<tr><td> <code>X-L402-Dry-Run: 1</code> </td><td> Marks the response as produced by shadow mode. Always present. </td></tr>
+<tr><td> <code>X-L402-Dry-Run-Price-Msat: &lt;n&gt;</code> </td><td> Effective price for this route. Only emitted when the request <em>would</em> have been challenged (<code>402</code>) — not on paid-valid or rejected-invalid responses, to avoid leaking pricing against decided traffic. </td></tr>
+<tr><td> <code>X-L402-Dry-Run-Challenge: L402 macaroon=&quot;...&quot;, invoice=&quot;...&quot;</code> </td><td> The exact <code>WWW-Authenticate</code> value enforce mode would have returned. Only present when the request would have been challenged (<code>402</code>) and the LN backend produced an invoice. </td></tr>
+<tr><td> <code>WWW-Authenticate: L402 macaroon=&quot;...&quot;, invoice=&quot;...&quot;</code> </td><td> Also set alongside the challenge header, so real L402 clients can follow the payment flow in a staging environment. </td></tr>
+<tr><td> <code>X-L402-Dry-Run-Rate-Limited: 1</code> + <code>X-L402-Dry-Run-Retry-After: &lt;sec&gt;</code> </td><td> Set when the request would have been challenged but hit <code>l402_invoice_rate_limit</code>. No invoice is generated and no challenge header is attached, mirroring what enforce mode would have done (429 + <code>Retry-After</code>). </td></tr>
+</tbody></table>
+<hr />
+<a class="header" href="print.html#structured-log-events" id="structured-log-events"><h2>Structured log events</h2></a>
+<p>Every shadow-mode request produces a single <code>info</code>-level JSON line via the
+Rust logger. A minimal example (formatted for readability):</p>
+<pre><code class="language-json">{
+  &quot;event&quot;: &quot;l402_dry_run&quot;,
+  &quot;route&quot;: &quot;/api/resource&quot;,
+  &quot;price_msat&quot;: 10000,
+  &quot;price_source&quot;: &quot;static&quot;,
+  &quot;backend&quot;: &quot;LNURL&quot;,
+  &quot;client_ip&quot;: &quot;203.0.113.42&quot;,
+  &quot;auth_state&quot;: &quot;missing&quot;,
+  &quot;would_return&quot;: 402
+}
+</code></pre>
+<p>Fields:</p>
+<table><thead><tr><th> Field </th><th> Values </th></tr></thead><tbody>
+<tr><td> <code>route</code> </td><td> Normalised request path used for pricing lookups. </td></tr>
+<tr><td> <code>price_msat</code> </td><td> Effective price in millisatoshis. </td></tr>
+<tr><td> <code>price_source</code> </td><td> <code>static</code> (from <code>nginx.conf</code>) or <code>dynamic</code> (from Redis). </td></tr>
+<tr><td> <code>backend</code> </td><td> LN backend type snapshot: <code>LND</code>, <code>LNURL</code>, <code>NWC</code>, <code>CLN</code>, <code>BOLT12</code>, <code>ECLAIR</code>. </td></tr>
+<tr><td> <code>client_ip</code> </td><td> From <code>X-Real-IP</code> → <code>X-Forwarded-For</code> → socket address. </td></tr>
+<tr><td> <code>auth_state</code> </td><td> <code>missing</code>, <code>valid</code>, or <code>invalid</code>. </td></tr>
+<tr><td> <code>would_return</code> </td><td> HTTP status enforce mode <em>would</em> have used (<code>200</code>, <code>401</code>, <code>402</code>). </td></tr>
+<tr><td> <code>rate_limited</code> </td><td> <code>true</code> when <code>l402_invoice_rate_limit</code> would have produced a <code>429</code> — challenge synthesis was skipped to protect the LN backend. </td></tr>
+</tbody></table>
+<p>Pipe into <code>jq</code> to see a live firehose:</p>
+<pre><code class="language-bash">sudo tail -f /var/log/nginx/error.log \
+  | grep '&quot;event&quot;:&quot;l402_dry_run&quot;' \
+  | jq -c 'select(.would_return != 200) | {route, price_msat, auth_state}'
+</code></pre>
+<hr />
+<a class="header" href="print.html#prometheus-metrics" id="prometheus-metrics"><h2>Prometheus metrics</h2></a>
+<p>The <code>l402_metrics</code> directive turns a location into a Prometheus scrape
+endpoint. It serves counters in text exposition format v0.0.4.</p>
+<pre><code class="language-nginx">location = /metrics {
+    l402_metrics;
+
+    # Production: restrict to your scrape network.
+    allow 10.0.0.0/8;
+    deny  all;
+}
+</code></pre>
+<p>Scrape it with a standard Prometheus config:</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: ngx_l402
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['nginx:8000']
+</code></pre>
+<p>Counters are kept in an nginx <strong>shared-memory zone</strong>, so they are aggregated
+across all worker processes: a scrape served by any worker returns the true
+total regardless of <code>worker_processes</code>. (If the shared zone cannot be
+allocated at startup the module logs a warning and falls back to per-worker
+counters, which under-report by roughly a factor of <code>worker_processes</code>.)</p>
+<a class="header" href="print.html#exported-counters" id="exported-counters"><h3>Exported counters</h3></a>
+<table><thead><tr><th> Metric </th><th> Meaning </th></tr></thead><tbody>
+<tr><td> <code>l402_requests_total</code> </td><td> Every request that entered the access handler with <code>l402 on;</code>. Incremented for both enforce and shadow traffic. </td></tr>
+<tr><td> <code>l402_challenges_issued_total</code> </td><td> Requests that received a <code>402</code> response (enforce mode), counted <em>after</em> the rate-limit gate. </td></tr>
+<tr><td> <code>l402_rate_limited_total</code> </td><td> Requests rejected with <code>429</code> by <code>l402_invoice_rate_limit</code> (enforce mode). </td></tr>
+<tr><td> <code>l402_payments_valid_total</code> </td><td> Authorization headers that verified successfully — Lightning + Cashu (enforce mode only — dry-run traffic goes to <code>l402_dry_run_*</code>). </td></tr>
+<tr><td> <code>l402_payments_lightning_total</code> </td><td> Successful payments settled via a Lightning macaroon (classic preimage <em>or</em> auto-detect). </td></tr>
+<tr><td> <code>l402_payments_cashu_total</code> </td><td> Successful payments settled via a Cashu token redemption. </td></tr>
+<tr><td> <code>l402_payments_invalid_total</code> </td><td> Authorization headers that failed verification (enforce mode only). </td></tr>
+<tr><td> <code>l402_payments_missing_total</code> </td><td> Requests without an Authorization header (enforce mode only). </td></tr>
+<tr><td> <code>l402_invoices_generated_total</code> </td><td> Lightning invoices successfully generated for L402 challenges (enforce mode only). </td></tr>
+<tr><td> <code>l402_invoices_generation_errors_total</code> </td><td> Failures generating a Lightning invoice during challenge synthesis (returns <code>500</code>). </td></tr>
+<tr><td> <code>l402_dry_run_requests_total</code> </td><td> Requests handled in shadow mode. </td></tr>
+<tr><td> <code>l402_dry_run_would_block_total</code> </td><td> Shadow-mode requests that <em>would</em> have been blocked (<code>401</code> or <code>402</code>). </td></tr>
+<tr><td> <code>l402_dry_run_would_allow_total</code> </td><td> Shadow-mode requests that <em>would</em> have been allowed (<code>200</code>). </td></tr>
+<tr><td> <code>l402_dry_run_rate_limited_total</code> </td><td> Shadow-mode requests that would have hit <code>l402_invoice_rate_limit</code> — challenge synthesis was skipped. </td></tr>
+<tr><td> <code>l402_dry_run_challenge_errors_total</code> </td><td> Shadow-mode requests where challenge synthesis failed (e.g. LN backend unreachable). </td></tr>
+<tr><td> <code>l402_dry_run_price_msat_sum</code> </td><td> Sum of msat prices evaluated in shadow mode. Pair with <code>_requests_total</code> to derive an average price. </td></tr>
+</tbody></table>
+<a class="header" href="print.html#useful-promql" id="useful-promql"><h3>Useful PromQL</h3></a>
+<pre><code class="language-promql"># Fraction of traffic that would be blocked if you flipped enforcement on:
+rate(l402_dry_run_would_block_total[5m])
+/
+rate(l402_dry_run_requests_total[5m])
+
+# Average price served by shadow mode (msat):
+rate(l402_dry_run_price_msat_sum[5m])
+/
+rate(l402_dry_run_requests_total[5m])
+
+# Challenge-synthesis error rate — a signal that your LN backend is flaky:
+rate(l402_dry_run_challenge_errors_total[5m])
+</code></pre>
+<blockquote>
+<p>The endpoint has no built-in authentication. Restrict it at the Nginx
+level with <code>allow</code>/<code>deny</code>, an auth subrequest, or a firewall rule —
+exposing it publicly leaks traffic volume and pricing details.</p>
+</blockquote>
+<hr />
+<a class="header" href="print.html#suggested-rollout-recipe" id="suggested-rollout-recipe"><h2>Suggested rollout recipe</h2></a>
+<ol>
+<li>Deploy with <code>l402 on;</code> and <code>l402_dry_run on;</code> on the target location.
+Leave existing routes untouched.</li>
+<li>Scrape <code>/metrics</code> for 24–48 hours. Confirm:
+<ul>
+<li><code>l402_dry_run_challenge_errors_total</code> stays flat (LN backend healthy).</li>
+<li><code>l402_dry_run_would_allow_total / l402_dry_run_requests_total</code> matches
+the fraction of paying clients you expect.</li>
+<li><code>l402_dry_run_price_msat_sum</code> divided by request count matches your
+posted price.</li>
+</ul>
+</li>
+<li>Sample the JSON log for a few high-volume paths and confirm
+<code>price_source</code> is what you configured (<code>static</code> vs <code>dynamic</code>).</li>
+<li>Remove <code>l402_dry_run on;</code> (or set it to <code>off</code>). Reload Nginx. The
+location now enforces.</li>
+</ol>
+<p>If you ever need to revert, setting <code>l402_dry_run on;</code> again immediately
+disables enforcement without touching upstream code paths.</p>
+<a class="header" href="print.html#capability-manifest" id="capability-manifest"><h1>Capability Manifest</h1></a>
+<p>The <code>l402_manifest</code> directive turns a location into a discovery endpoint
+that emits a JSON description of every L402-protected route on the
+server. It is intended to live at <code>/.well-known/l402-services</code> (<a href="https://datatracker.ietf.org/doc/html/rfc8615">RFC 8615</a>),
+making this instance self-describing to clients that have only the host.</p>
+<pre><code class="language-nginx">location = /.well-known/l402-services {
+    l402_manifest;
+
+    # Optional: restrict who can scrape pricing details.
+    # allow 10.0.0.0/8;
+    # deny  all;
+}
+</code></pre>
+<p>This is the agent-era equivalent of <code>robots.txt</code> or <code>security.txt</code>. An
+autonomous agent (or any client) given only <code>https://example.com</code> can
+fetch the manifest, learn which routes are paid, how much they cost, and
+which payment backends are accepted — without any out-of-band integration.</p>
+<hr />
+<a class="header" href="print.html#example-response" id="example-response"><h2>Example response</h2></a>
+<pre><code class="language-json">{
+  &quot;version&quot;: &quot;1&quot;,
+  &quot;service&quot;: {
+    &quot;name&quot;: &quot;Example API&quot;,
+    &quot;description&quot;: &quot;Stock data API&quot;
+  },
+  &quot;payment_methods&quot;: [
+    {
+      &quot;type&quot;: &quot;lightning&quot;,
+      &quot;backend&quot;: &quot;LNURL&quot;,
+      &quot;address&quot;: &quot;hello@getalby.com&quot;
+    },
+    {
+      &quot;type&quot;: &quot;cashu&quot;,
+      &quot;mints&quot;: [&quot;https://mint.minibits.cash&quot;],
+      &quot;p2pk_supported&quot;: true,
+      &quot;challenge_header&quot;: &quot;X-Cashu&quot;
+    }
+  ],
+  &quot;routes&quot;: [
+    {
+      &quot;path&quot;: &quot;/protected&quot;,
+      &quot;price&quot;: {
+        &quot;type&quot;: &quot;static&quot;,
+        &quot;amount_msat&quot;: 10000
+      },
+      &quot;caveats_required&quot;: [&quot;RequestPath = /protected&quot;]
+    },
+    {
+      &quot;path&quot;: &quot;/rate-limited&quot;,
+      &quot;price&quot;: {
+        &quot;type&quot;: &quot;static&quot;,
+        &quot;amount_msat&quot;: 10000
+      },
+      &quot;caveats_required&quot;: [&quot;RequestPath = /rate-limited&quot;],
+      &quot;rate_limit&quot;: {
+        &quot;max_requests&quot;: 2,
+        &quot;window_secs&quot;: 60
+      }
+    }
+  ]
+}
+</code></pre>
+<hr />
+<a class="header" href="print.html#what-the-manifest-describes" id="what-the-manifest-describes"><h2>What the manifest describes</h2></a>
+<table><thead><tr><th> Field </th><th> Source </th><th> Meaning </th></tr></thead><tbody>
+<tr><td> <code>version</code> </td><td> constant <code>&quot;1&quot;</code> </td><td> Schema version. Bumped on breaking changes; agents should reject unknown majors. </td></tr>
+<tr><td> <code>service.name</code>, <code>service.description</code>, <code>service.operator</code>, <code>service.contact</code> </td><td> env vars <code>L402_SERVICE_NAME</code>, <code>L402_SERVICE_DESCRIPTION</code>, <code>L402_SERVICE_OPERATOR</code>, <code>L402_SERVICE_CONTACT</code> </td><td> Optional, omitted when unset. </td></tr>
+<tr><td> <code>payment_methods[].type</code> </td><td> <code>lightning</code> or <code>cashu</code> </td><td> Which payment rail this method describes. </td></tr>
+<tr><td> <code>payment_methods[].backend</code> </td><td> env var <code>LN_CLIENT_TYPE</code> </td><td> <code>LNURL</code>, <code>LND</code>, <code>CLN</code>, <code>NWC</code>, <code>BOLT12</code>, <code>ECLAIR</code>, <code>LNC</code>. </td></tr>
+<tr><td> <code>payment_methods[].address</code> </td><td> env var <code>LNURL_ADDRESS</code> (LNURL backends only) </td><td> Server-default LN address. May be overridden per-route via <code>lnurl_addr</code>. </td></tr>
+<tr><td> <code>payment_methods[].mints</code> </td><td> env var <code>CASHU_WHITELISTED_MINTS</code> </td><td> Allowed Cashu mints (when Cashu is enabled). </td></tr>
+<tr><td> <code>payment_methods[].p2pk_supported</code> </td><td> env var <code>CASHU_P2PK_MODE</code> </td><td> Whether NUT-24 P2PK Cashu is enabled. </td></tr>
+<tr><td> <code>routes[].path</code> </td><td> <code>location</code> directive </td><td> URL path served by this route. </td></tr>
+<tr><td> <code>routes[].price.amount_msat</code> </td><td> <code>l402_amount_msat_default</code> </td><td> Base price after <code>merge_loc_conf</code>. </td></tr>
+<tr><td> <code>routes[].caveats_required</code> </td><td> derived </td><td> Caveats the issued macaroon will carry. Today always <code>[RequestPath = &lt;path&gt;]</code>. </td></tr>
+<tr><td> <code>routes[].macaroon_timeout_secs</code> </td><td> <code>l402_macaroon_timeout</code> </td><td> Omitted when <code>0</code> (no expiry). </td></tr>
+<tr><td> <code>routes[].lnurl_addr</code> </td><td> <code>l402_lnurl_addr</code> </td><td> Per-route LNURL override for multi-tenant deployments. </td></tr>
+<tr><td> <code>routes[].rate_limit</code> </td><td> <code>l402_invoice_rate_limit</code> </td><td> Server-side invoice rate limit applied before challenge issuance. </td></tr>
+<tr><td> <code>routes[].auto_detect_payment</code> </td><td> <code>l402_auto_detect_payment</code> </td><td> When true, clients can omit the preimage and the server settles via node lookup. </td></tr>
+</tbody></table>
+<p>Dynamic (Redis-backed) pricing is <strong>not</strong> reflected in <code>price.amount_msat</code> —
+the manifest emits the static default. Dynamic prices change per request
+and would require a Redis round-trip per route to render accurately;
+that's out of scope for v1.</p>
+<hr />
+<a class="header" href="print.html#hiding-a-route" id="hiding-a-route"><h2>Hiding a route</h2></a>
+<p>Operators may want certain paid routes to remain undiscoverable — private
+APIs, beta tiers, customer-specific endpoints. Use <code>l402_manifest_hide;</code>
+on the location:</p>
+<pre><code class="language-nginx">location /internal-paid {
+    l402 on;
+    l402_amount_msat_default 100000;
+    l402_manifest_hide;       # not advertised in /.well-known/l402-services
+}
+</code></pre>
+<p>The route still enforces L402 normally. It just doesn't appear in the
+manifest's <code>routes[]</code> array.</p>
+<hr />
+<a class="header" href="print.html#service-level-metadata" id="service-level-metadata"><h2>Service-level metadata</h2></a>
+<p>The optional <code>service</code> block is read from environment variables at
+manifest-render time:</p>
+<pre><code class="language-sh">L402_SERVICE_NAME=&quot;Example API&quot;
+L402_SERVICE_DESCRIPTION=&quot;Premium financial data, paid per request.&quot;
+L402_SERVICE_OPERATOR=&quot;npub1abcd...&quot;   # Nostr pubkey, DID, or free-form
+L402_SERVICE_CONTACT=&quot;ops@example.com&quot;
+</code></pre>
+<p>All four are optional. Unset variables are omitted from the response so
+the manifest stays valid JSON even with no service metadata.</p>
+<hr />
+<a class="header" href="print.html#caveats-and-limitations" id="caveats-and-limitations"><h2>Caveats and limitations</h2></a>
+<ul>
+<li><strong>Per-worker registry.</strong> The manifest registry is per-nginx-worker. On a
+multi-worker deployment, every worker sees the same routes (config is
+shared), so this is a non-issue for the manifest itself. (Unlike the
+<code>l402_metrics</code> counters, which use a shared-memory zone, the registry is
+read-only per-worker state and needs no cross-worker aggregation.)</li>
+<li><strong>No authentication by default.</strong> Pricing information is public.
+Restrict the endpoint with <code>allow</code>/<code>deny</code>, an auth subrequest, or a
+firewall if competitors should not see your full pricing matrix.</li>
+<li><strong>Reload behaviour.</strong> On <code>nginx -s reload</code>, new workers start with a
+fresh registry built from the new config. Old workers serve in-flight
+requests with their existing registry until they exit.</li>
+</ul>
+<hr />
+<a class="header" href="print.html#why-this-matters" id="why-this-matters"><h2>Why this matters</h2></a>
+<p>Without a manifest, every L402 integration is a bespoke wiring job: the
+client must be told the routes, prices, payment backends, and caveat
+formats out of band. With one, an agent can land on a host and onboard
+itself end-to-end:</p>
+<pre><code class="language-text">GET /.well-known/l402-services  → learn the API surface
+GET /protected                → receive 402 + bolt11 invoice
+PAY the invoice               → get preimage
+GET /protected with L402 auth → success
+</code></pre>
+<p>For autonomous agents — Claude tools, MCP servers, custom-built — this is
+the difference between L402 being a protocol and L402 being a
+<em>discoverable web standard</em>.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+
+            </div>
+
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+        
+
+        
+        <script>
+            $(document).ready(function() {
+                window.print();
+            })
+        </script>
+        
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS script -->
+        
+        <script type="text/javascript" src="mermaid.min.js"></script>
+        
+        <script type="text/javascript" src="mermaid-init.js"></script>
+        
+
+    </body>
+</html>
