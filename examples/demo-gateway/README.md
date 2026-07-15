@@ -2,22 +2,7 @@
 
 The live gateway behind the **"Try it live"** widget on [ngx-l402.org](https://ngx-l402.org):
 a real ngx-l402 instance charging **1 sat** for `/protected`, with the CORS headers
-browsers need to run the 402 → pay → unlock loop from a web page.
-
-## Why this can't run on GitHub Pages
-
-GitHub Pages (and Netlify/Cloudflare Pages/Vercel static hosting) serve **static
-files only** — no server processes. ngx-l402 *is* nginx, a server binary, so it
-needs a host that runs containers or VMs. The website is static and lives on
-Pages-style hosting; this gateway is the one piece that needs a real machine.
-
-Cheap/free options that work:
-
-| Host | Notes |
-|---|---|
-| **Fly.io** | `fly launch` with the Dockerfile-less image below; small VMs are ~free |
-| **Any VPS** (Hetzner, Oracle Free Tier, DO) | `docker compose up -d`, done |
-| **Railway / Render** | container deploy from this folder |
+browsers need to run the 402 → pay → unlock flow from a web page.
 
 ## Run it
 

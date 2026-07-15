@@ -73,6 +73,38 @@
   window.addEventListener("scroll", onScroll, { passive: true });
 })();
 
+/* ---- mobile hamburger menu ---- */
+(() => {
+  const bar = document.querySelector(".topbar");
+  const btn = document.getElementById("nav-toggle");
+  if (!bar || !btn) return;
+  const set = (open) => {
+    bar.classList.toggle("nav-open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  btn.addEventListener("click", () => set(!bar.classList.contains("nav-open")));
+  bar.querySelectorAll(".topbar__nav a").forEach((a) =>
+    a.addEventListener("click", () => set(false))
+  );
+})();
+
+/* ---- live latest-version from GitHub releases ---- */
+(() => {
+  const slots = document.querySelectorAll("[data-version]");
+  if (!slots.length) return;
+  fetch("https://api.github.com/repos/ngx-l402/ngx-l402/releases/latest", {
+    headers: { Accept: "application/vnd.github+json" },
+  })
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((d) => {
+      const tag = d && typeof d.tag_name === "string" ? d.tag_name : null;
+      if (!tag) return;
+      const label = tag.startsWith("v") ? tag : "v" + tag;
+      slots.forEach((el) => (el.textContent = label));
+    })
+    .catch(() => {});
+})();
+
 /* ---- dark / light theme toggle ---- */
 (() => {
   const btn = document.getElementById("theme-toggle");
@@ -112,6 +144,20 @@
     return { macaroon, invoice: fields.invoice };
   };
 
+  // Decode the amount from a BOLT-11 invoice's human-readable prefix.
+  const invoiceSats = (inv) => {
+    // amount (+ optional multiplier) sits before the bech32 "1" separator
+    const m = (inv || "").match(/^ln(?:bcrt|bc|tbs|tb)(\d+)([munp])?1/i);
+    if (!m) return null; // amountless invoice → don't show a price
+    const msatPerUnit = { m: 1e8, u: 1e5, n: 1e2, p: 0.1 };
+    const msat = parseInt(m[1], 10) * (m[2] ? msatPerUnit[m[2].toLowerCase()] : 1e11);
+    return msat / 1000; // sats (may be fractional)
+  };
+  const fmtAmount = (sats) =>
+    sats == null ? "" : Number.isInteger(sats)
+      ? `${sats} sat${sats === 1 ? "" : "s"}`
+      : `${Math.round(sats * 1000)} msat`;
+
   const target = () => $("ld-gw").value.replace(/\/$/, "") + $("ld-path").value;
 
   const request = async () => {
@@ -143,7 +189,8 @@
     }
     state.macaroon = parsed.macaroon;
     state.invoice = parsed.invoice;
-    show("<span class='warn'>402 Payment Required</span> — invoice received. Pay it, then unlock.");
+    const amt = fmtAmount(invoiceSats(parsed.invoice));
+    show(`<span class='warn'>402 Payment Required</span>${amt ? " — pay <b>" + amt + "</b>" : ""}. Pay the invoice below, then unlock.`);
     $("ld-invoice").textContent = parsed.invoice;
     $("ld-wallet").href = "lightning:" + parsed.invoice;
     pay.hidden = false;
@@ -161,7 +208,7 @@
     const body = (await resp.text()).slice(0, 500);
     if (resp.status === 200) {
       pay.hidden = true;
-      show("<span class='ok'>🔓 200 OK — unlocked. That's the whole loop: 402 → pay → proof → content.</span>\n\n" + body);
+      show("<span class='ok'>🔓 200 OK — unlocked. That's the whole flow: 402 → pay → proof → content.</span>\n\n" + body);
     } else {
       show("Retry returned HTTP " + resp.status + "\n" + body, "warn");
     }

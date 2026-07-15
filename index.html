@@ -287,10 +287,41 @@
       background: var(--accent-tint);
     }
 
-    @media (max-width: 560px) {
-      .topbar__nav .topbar__link {
+    /* mobile hamburger */
+    .topbar__burger {
+      display: none;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--ink);
+      font-size: 20px;
+      line-height: 1;
+    }
+    .topbar__burger:hover { background: var(--bg-2); }
+
+    @media (max-width: 820px) {
+      .topbar__burger { display: inline-flex; }
+      .topbar__nav {
         display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+        padding: 10px var(--pad-x) 16px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--rule);
+        box-shadow: var(--shadow-soft);
+        font-size: 15px;
       }
+      .topbar.nav-open .topbar__nav { display: flex; }
+      .topbar__nav .topbar__link { padding: 11px 8px; }
+      .topbar__nav .topbar__gh { margin-top: 6px; align-self: flex-start; }
+      .topbar__theme { align-self: flex-start; }
     }
 
     .topbar__gh {
@@ -1217,6 +1248,7 @@
           <span class="topbar__stars" data-stars hidden></span>
         </a>
       </nav>
+      <button class="topbar__burger" id="nav-toggle" type="button" aria-label="Menu" aria-expanded="false">☰</button>
     </div>
   </header>
 
@@ -1405,10 +1437,8 @@ server {
       <div class="live" id="try">
         <h3 class="live__title">⚡ Try it live</h3>
         <p class="live__sub">
-          Run the real 402 → pay → unlock loop from your browser. Start the
-          <a class="link" href="#quickstart">quickstart</a> container and hit
-          Request — or point the widget at any ngx-l402 gateway you can reach.
-          <span class="muted">(Hosted demo endpoint coming soon.)</span>
+          Run the real 402 → pay → unlock flow right here — the widget hits the
+          live demo gateway by default, or point it at any ngx-l402 gateway you run.
         </p>
         <div class="live__row">
           <input id="ld-gw" class="mono" value="https://demo.ngx-l402.org" aria-label="Gateway URL" />
@@ -1899,7 +1929,7 @@ server {
         </div>
       </div>
       <div class="footer__bottom mono">
-        <span>ngx-l402.org · v1.2.7 · MIT</span>
+        <span>ngx-l402.org · <a class="link" href="https://github.com/ngx-l402/ngx-l402/releases/latest" target="_blank" rel="noopener noreferrer" data-version>v1.2.7</a> · MIT</span>
         <span class="muted">// Lightning-native. Non-custodial. Not a wallet. Not investment advice.</span>
       </div>
     </footer>

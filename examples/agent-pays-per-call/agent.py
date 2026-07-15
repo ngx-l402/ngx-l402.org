@@ -2,7 +2,7 @@
 """
 agent.py — an autonomous agent that pays per API call over L402.
 
-The full machine-payable loop, with no API key and no human in the loop:
+The full machine-payable flow, with no API key and no human in the loop:
 
     1. (optional) discover the API by fetching /.well-known/l402-services
     2. GET a protected route            -> 402 Payment Required + invoice

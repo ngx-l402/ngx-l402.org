@@ -11,7 +11,7 @@ Runnable demos for putting a Lightning paywall in front of any HTTP API with
 | [`browser-pay-to-unlock`](browser-pay-to-unlock/) | A **WebLN** page that pays a 402 invoice in the browser and unlocks content live. | Static HTML |
 | [`demo-gateway`](demo-gateway/) | The 1-sat live gateway behind the site's **"Try it live"** widget — CORS-ready nginx.conf + compose. | Docker Compose |
 
-All four target the same primitive: a `402 Payment Required` carrying a Lightning
+They all target the same primitive: a `402 Payment Required` carrying a Lightning
 invoice, settled with a preimage. Point them at any ngx-l402 gateway — your own
 deployment, or the regtest dev stack in the
 [module repo](https://github.com/ngx-l402/ngx-l402).

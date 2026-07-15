@@ -118,17 +118,6 @@ gateway: http://localhost:8000   route: /protected   payer: lnd-rest
 
 ## Turning this into an MCP tool
 
-`agent.py`'s four steps are exactly one MCP tool body. A sketch:
-
-```python
-@mcp.tool()
-def call_paid_api(path: str) -> str:
-    """Buy a single call to a paid API over Lightning and return the result."""
-    macaroon, invoice = get_challenge(GATEWAY, path)   # step 2
-    preimage = wallet.pay(invoice)                      # step 3
-    return retry_with_proof(GATEWAY, path, macaroon, preimage)  # step 4
-```
-
-The agent calls the tool; the tool pays; the model never sees a key or a
-balance. That's the difference between "an API an agent can read about" and
-"an API an agent can actually use."
+The same four steps wrapped as an MCP tool are the
+[`mcp-paid-tool`](../mcp-paid-tool/) example — so Claude Desktop (or any MCP
+client) can buy calls on demand, with the model never seeing a key or a balance.

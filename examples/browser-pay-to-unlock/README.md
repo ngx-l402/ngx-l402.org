@@ -1,6 +1,6 @@
 # Browser pay-to-unlock (WebLN)
 
-A self-contained static page that runs the full L402 loop in the browser: it
+A self-contained static page that runs the full L402 flow in the browser: it
 requests a protected route, receives the `402` + Lightning invoice, pays it with
 a [WebLN](https://www.webln.dev/) wallet (or any wallet), and unlocks the content
 live — no build step, no backend, one HTML file.
