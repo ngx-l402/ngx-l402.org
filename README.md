@@ -10,8 +10,7 @@ dependencies.
 .
 ├── index.html   # markup + inline stylesheet
 ├── main.js      # copy buttons, theme toggle, live demo widget, GitHub stars
-├── docs/        # rendered mdBook (synced from the module repo on release)
-└── examples/    # runnable demos
+└── docs/        # rendered mdBook (synced from the module repo on release)
 ```
 
 ## Develop
