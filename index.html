@@ -1471,8 +1471,19 @@ server {
         </p>
         <div class="live__row">
           <input id="ld-gw" class="mono" value="https://demo.ngx-l402.org" aria-label="Gateway URL" />
-          <input id="ld-path" class="mono" value="/protected" style="flex:0 1 150px;" aria-label="Protected path" />
+          <!-- min-width:0 — without it an input floors at 20 characters and the Request button wraps. -->
+          <input id="ld-path" class="mono" value="/protected" style="flex:0 1 150px; min-width:0;" aria-label="Protected path" />
           <button id="ld-go" class="btn btn--primary" type="button">Request →</button>
+        </div>
+        <p class="live__sub">
+          <a href="#" class="link" id="ld-cashu-toggle">Pay with an eCash token instead →</a>
+        </p>
+        <div id="ld-cashu-box" hidden>
+          <div id="ld-mints" class="live__sub" hidden></div>
+          <div class="live__row">
+            <input id="ld-cashu" class="mono" placeholder="paste a Cashu token (cashuB…)" />
+            <button id="ld-cashu-unlock" class="btn btn--secondary" type="button">Pay with eCash</button>
+          </div>
         </div>
         <div id="ld-out" class="live__out mono" hidden></div>
         <div id="ld-pay" hidden>
@@ -1486,11 +1497,6 @@ server {
             <input id="ld-preimage" class="mono" placeholder="…or paste the 64-hex preimage after paying with any wallet" />
             <button id="ld-unlock" class="btn btn--secondary" type="button">Unlock</button>
           </div>
-          <div class="live__row">
-            <input id="ld-cashu" class="mono" placeholder="…or paste a Cashu token (cashuB…) — no invoice to pay at all" />
-            <button id="ld-cashu-unlock" class="btn btn--secondary" type="button">Unlock with eCash</button>
-          </div>
-          <div id="ld-mints" class="mono" hidden></div>
         </div>
       </div>
     </section>

@@ -194,11 +194,9 @@
     $("ld-invoice").textContent = parsed.invoice;
     $("ld-wallet").href = "lightning:" + parsed.invoice;
     pay.hidden = false;
-    showMints();
   };
 
-  // Name the mints this gateway will accept, from its own manifest — a token
-  // from anywhere else is rejected, and there is no way to guess the list.
+  // eCash never sees a 402, so the price and mint list come from the manifest.
   const showMints = async () => {
     const el = $("ld-mints");
     el.hidden = true;
@@ -206,20 +204,35 @@
       const gw = $("ld-gw").value.replace(/\/$/, "");
       const resp = await fetch(gw + "/.well-known/l402-services");
       if (!resp.ok) return;
-      const cashu = ((await resp.json()).payment_methods || []).find((p) => p.type === "cashu");
+      const manifest = await resp.json();
+
+      const cashu = (manifest.payment_methods || []).find((p) => p.type === "cashu");
       if (!cashu || !cashu.mints || !cashu.mints.length) return;
-      el.textContent = "eCash accepted from: " + cashu.mints.join("   ");
+
+      const path = $("ld-path").value;
+      const route = (manifest.routes || []).find((r) => r.path === path);
+      const msat = route && route.price && route.price.amount_msat;
+      const price = msat ? fmtAmount(msat / 1000) : null;
+
+      // Keep the path — mint.minibits.cash/Bitcoin is not mint.minibits.cash.
+      const names = cashu.mints.map((m) => m.replace(/^https?:\/\//, ""));
+      const mints =
+        names.length > 1
+          ? `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`
+          : names[0];
+      el.textContent = price
+        ? `Needs a ${price} token from ${mints}`
+        : `Tokens accepted from ${mints}`;
       el.hidden = false;
     } catch (e) {
       /* manifest is optional — the invoice path works without it */
     }
   };
 
-  // Both payment paths ride the Authorization header: `L402 <macaroon>:<preimage>`
-  // for the invoice flow, `Cashu <token>` for eCash. X-Cashu is a response-only
-  // header (the NUT-24 payment request in P2PK mode), never a request one.
+  // Not NUT-24's X-Cashu: gateways only read it from 1.2.9 on, and the gateway
+  // field accepts any URL, so Authorization is what works against every version.
   const retry = async (authorization) => {
-    show("→ retrying with proof of payment…");
+    show("→ sending proof of payment…");
     let resp;
     try {
       resp = await fetch(target(), { headers: { Authorization: authorization } });
@@ -270,6 +283,19 @@
     retry(`Cashu ${t}`);
   });
   $("ld-copy").addEventListener("click", () => navigator.clipboard.writeText(state.invoice || ""));
+
+  // Fetch on open, not on load: the invoice flow costs no extra request.
+  $("ld-cashu-toggle").addEventListener("click", (e) => {
+    e.preventDefault();
+    const box = $("ld-cashu-box");
+    box.hidden = !box.hidden;
+    if (!box.hidden) showMints();
+  });
+  ["ld-gw", "ld-path"].forEach((id) =>
+    $(id).addEventListener("change", () => {
+      if (!$("ld-cashu-box").hidden) showMints();
+    })
+  );
 })();
 
 /* ---- nav scroll-spy ---- */
