@@ -170,7 +170,7 @@
       show(
         "Gateway unreachable. Start one locally in 60 seconds:\n" +
         "docker run -d -p 8000:8000 -e LN_CLIENT_TYPE=LNURL -e LNURL_ADDRESS=you@getalby.com " +
-        "-e ROOT_KEY=$(openssl rand -hex 32) ghcr.io/dhananjaypurohit/ngx_l402:latest\n" +
+        "-e ROOT_KEY=$(openssl rand -hex 32) ghcr.io/ngx-l402/ngx-l402:latest\n" +
         "then set the gateway above to http://localhost:8000", "warn");
       return;
     }

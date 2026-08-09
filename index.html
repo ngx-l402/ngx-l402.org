@@ -1694,14 +1694,14 @@ server {
   -e <span class="s">LN_CLIENT_TYPE=LNURL</span> \
   -e <span class="s">LNURL_ADDRESS=you@your-lnurl-server.com</span> \
   -e <span class="s">ROOT_KEY=$(openssl rand -hex 32)</span> \
-  <span class="s">ghcr.io/dhananjaypurohit/ngx_l402:latest</span>
+  <span class="s">ghcr.io/ngx-l402/ngx-l402:latest</span>
 
 <span class="c"># Gateway listens on :8000.</span>
 <span class="c"># curl http://localhost:8000/             → 200 OK</span>
 <span class="c"># curl -i http://localhost:8000/protected → 402 Payment Required</span></pre>
           </div>
           <!-- prettier-ignore -->
-          <template class="copy-src">docker run -d --name l402-nginx -p 8000:8000 -e LN_CLIENT_TYPE=LNURL -e LNURL_ADDRESS=you@your-lnurl-server.com -e ROOT_KEY=$(openssl rand -hex 32) ghcr.io/dhananjaypurohit/ngx_l402:latest</template>
+          <template class="copy-src">docker run -d --name l402-nginx -p 8000:8000 -e LN_CLIENT_TYPE=LNURL -e LNURL_ADDRESS=you@your-lnurl-server.com -e ROOT_KEY=$(openssl rand -hex 32) ghcr.io/ngx-l402/ngx-l402:latest</template>
         </figure>
       </div>
       <ol class="steplist">
