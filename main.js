@@ -194,13 +194,35 @@
     $("ld-invoice").textContent = parsed.invoice;
     $("ld-wallet").href = "lightning:" + parsed.invoice;
     pay.hidden = false;
+    showMints();
   };
 
-  const retry = async (preimage) => {
+  // Name the mints this gateway will accept, from its own manifest — a token
+  // from anywhere else is rejected, and there is no way to guess the list.
+  const showMints = async () => {
+    const el = $("ld-mints");
+    el.hidden = true;
+    try {
+      const gw = $("ld-gw").value.replace(/\/$/, "");
+      const resp = await fetch(gw + "/.well-known/l402-services");
+      if (!resp.ok) return;
+      const cashu = ((await resp.json()).payment_methods || []).find((p) => p.type === "cashu");
+      if (!cashu || !cashu.mints || !cashu.mints.length) return;
+      el.textContent = "eCash accepted from: " + cashu.mints.join("   ");
+      el.hidden = false;
+    } catch (e) {
+      /* manifest is optional — the invoice path works without it */
+    }
+  };
+
+  // Both payment paths ride the Authorization header: `L402 <macaroon>:<preimage>`
+  // for the invoice flow, `Cashu <token>` for eCash. X-Cashu is a response-only
+  // header (the NUT-24 payment request in P2PK mode), never a request one.
+  const retry = async (authorization) => {
     show("→ retrying with proof of payment…");
     let resp;
     try {
-      resp = await fetch(target(), { headers: { Authorization: `L402 ${state.macaroon}:${preimage}` } });
+      resp = await fetch(target(), { headers: { Authorization: authorization } });
     } catch (e) {
       show("Network error on retry: " + e, "warn");
       return;
@@ -224,9 +246,11 @@
       await window.webln.enable();
       const res = await window.webln.sendPayment(state.invoice);
       if (!res || !res.preimage) throw new Error("wallet returned no preimage");
-      await retry(res.preimage);
+      await retry(`L402 ${state.macaroon}:${res.preimage}`);
     } catch (e) {
-      show("WebLN: " + (e.message || e), "warn");
+      // Alby latches after a failed enable() and refuses every later call, so
+      // say the reload out loud — otherwise the next click looks like a new bug.
+      show("WebLN: " + (e.message || e) + "\nIf this repeats, reload the page — the wallet blocks further calls until then.", "warn");
     }
   });
   $("ld-unlock").addEventListener("click", () => {
@@ -235,7 +259,15 @@
       show("Preimage must be 64 hex characters.", "warn");
       return;
     }
-    retry(p);
+    retry(`L402 ${state.macaroon}:${p}`);
+  });
+  $("ld-cashu-unlock").addEventListener("click", () => {
+    const t = $("ld-cashu").value.trim();
+    if (!/^cashu[AB]/.test(t)) {
+      show("That doesn't look like a Cashu token — they start with cashuA or cashuB.", "warn");
+      return;
+    }
+    retry(`Cashu ${t}`);
   });
   $("ld-copy").addEventListener("click", () => navigator.clipboard.writeText(state.invoice || ""));
 })();
