@@ -171,6 +171,7 @@
     line.textContent = text + "\n";
     wireLog.append(line);
     $("ld-wire").hidden = false;
+    wireLog.scrollTop = wireLog.scrollHeight;
   };
   const STATUS = { 200: "OK", 401: "Unauthorized", 402: "Payment Required", 404: "Not Found", 429: "Too Many Requests", 503: "Service Unavailable" };
 
