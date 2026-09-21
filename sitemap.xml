@@ -12,10 +12,12 @@
   </url>
   <url><loc>https://ngx-l402.org/docs/install-manual.html</loc><priority>0.7</priority></url>
   <url><loc>https://ngx-l402.org/docs/install-docker.html</loc><priority>0.7</priority></url>
+  <url><loc>https://ngx-l402.org/docs/deploy-tls.html</loc><priority>0.7</priority></url>
   <url><loc>https://ngx-l402.org/docs/macos-setup.html</loc><priority>0.6</priority></url>
   <url><loc>https://ngx-l402.org/docs/config-env-vars.html</loc><priority>0.7</priority></url>
   <url><loc>https://ngx-l402.org/docs/config-redis.html</loc><priority>0.6</priority></url>
   <url><loc>https://ngx-l402.org/docs/config-multi-tenant.html</loc><priority>0.6</priority></url>
+  <url><loc>https://ngx-l402.org/docs/realm.html</loc><priority>0.6</priority></url>
   <url><loc>https://ngx-l402.org/docs/lightning.html</loc><priority>0.7</priority></url>
   <url><loc>https://ngx-l402.org/docs/cashu.html</loc><priority>0.7</priority></url>
   <url><loc>https://ngx-l402.org/docs/building.html</loc><priority>0.6</priority></url>

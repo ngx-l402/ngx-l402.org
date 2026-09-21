@@ -1153,6 +1153,35 @@
     }
     .live__out .ok { color: var(--code-ok); }
     .live__out .warn { color: var(--code-warn); }
+    .live__wire { margin-top: 14px; }
+    .live__wire summary { cursor: pointer; font-size: 12.5px; color: var(--ink-3); }
+    .live__wire pre {
+      margin: 8px 0 0;
+      font-size: 12px;
+      line-height: 1.55;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow: auto;
+      max-height: 440px;
+    }
+    .live__wire .req { font-weight: 600; }
+    .live__wire .dim { opacity: .65; }
+    .live__wire .ok { color: var(--code-ok); }
+    .live__wire .warn { color: var(--code-warn); }
+    .live__wire .agent { color: var(--yellow); }
+    .live__receipt {
+      margin-top: 14px;
+      max-width: 460px;
+      border: 1px dashed var(--rule-2);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .live__receipt-title { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+    .live__receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0 14px; font-size: 12.5px; }
+    .live__receipt dt { color: var(--ink-3); }
+    .live__receipt dd { margin: 0; overflow-wrap: anywhere; }
     .live__invoice {
       font-size: 11.5px;
       word-break: break-all;
@@ -1341,7 +1370,7 @@
 
   <span class="k">location</span> <span class="s">/v1/</span> {
     <span class="k">l402</span>                      <span class="s">on</span>;
-    <span class="k">l402_amount_msat_default</span>  <span class="n">1000000</span>;   <span class="c"># 1,000 sats / request</span>
+    <span class="k">l402_amount_msat_default</span>  <span class="n">10000</span>;     <span class="c"># 10 sats / request</span>
     <span class="k">l402_auto_detect_payment</span>  <span class="s">on</span>;        <span class="c"># client needn't echo the preimage</span>
 
     <span class="k">proxy_pass</span>                <span class="s">http://upstream</span>;
@@ -1357,7 +1386,7 @@ server {
 
   location /v1/ {
     l402                      on;
-    l402_amount_msat_default  1000000;   # 1,000 sats / request
+    l402_amount_msat_default  10000;     # 10 sats / request
     l402_auto_detect_payment  on;        # client needn't echo the preimage
 
     proxy_pass                http://upstream;
@@ -1366,7 +1395,7 @@ server {
 # Backend — LND · LNC · CLN · Eclair · LNURL · NWC · BOLT12 — is set via env vars.</template>
           </figure>
           <p class="herocode__cap mono">
-            ↑ that block turns <b>api.example.com/v1/</b> into a 1,000-sat-per-request
+            ↑ that block turns <b>api.example.com/v1/</b> into a 10-sat-per-request
             Lightning endpoint. No application code touched.
           </p>
         </div>
@@ -1402,7 +1431,7 @@ server {
 
 <span class="w">HTTP/1.1 402 Payment Required</span>
 <span class="b">WWW-Authenticate</span>: L402 macaroon=<span class="s">"AGIAJEemVQUTEyNCR0exk7ek..."</span>,
-                  invoice=<span class="s">"lnbc10u1p3xnhl2pp5..."</span>
+                  invoice=<span class="s">"lnbc100n1p3xnhl2pp5..."</span>
 
 <span class="c"># The whole challenge lives in the WWW-Authenticate header:</span>
 <span class="c"># a macaroon (access token) + a BOLT-11 invoice to pay.</span></pre>
@@ -1421,7 +1450,7 @@ server {
             <pre><span class="c"># Agent pays the invoice with any Lightning wallet.</span>
 <span class="c"># lncli (LND) shown here — Phoenix, Alby, NWC all work.</span>
 <span class="f">$ lncli</span> payinvoice \
-  --pay_req=<span class="s">lnbc10u1p3xnhl2pp5...</span>
+  --pay_req=<span class="s">lnbc100n1p3xnhl2pp5...</span>
 
 <span class="ok">Payment hash:</span> 9c3a2b1f8e7d6c5b4a39281706f5e4d3...
 <span class="ok">Payment preimage:</span> <span class="hl">7a3c91b4e2d058...</span>
@@ -1430,7 +1459,7 @@ server {
 <span class="c"># sha256(preimage) == paymentHash → proof of payment.</span>
 <span class="c"># Verified locally at the edge — no callback to any third party.</span></pre>
           </div>
-          <template class="copy-src">lncli payinvoice --pay_req=lnbc10u1p3xnhl2...</template>
+          <template class="copy-src">lncli payinvoice --pay_req=lnbc100n1p3xnhl2...</template>
         </figure>
 
         <figure class="codecard">
@@ -1477,6 +1506,8 @@ server {
         </div>
         <p class="live__sub">
           <a href="#" class="link" id="ld-cashu-toggle">Pay with an eCash token instead →</a>
+          <span class="muted">·</span>
+          <a href="#" class="link" id="ld-agent">Watch an agent do it on its own →</a>
         </p>
         <div id="ld-cashu-box" hidden>
           <div id="ld-mints" class="live__sub" hidden></div>
@@ -1498,6 +1529,15 @@ server {
             <button id="ld-unlock" class="btn btn--secondary" type="button">Unlock</button>
           </div>
         </div>
+        <div id="ld-receipt" class="live__receipt" hidden>
+          <div class="live__receipt-title mono">⚡ receipt</div>
+          <dl id="ld-receipt-body" class="mono"></dl>
+          <button id="ld-share" class="btn btn--secondary" type="button">Share on Nostr</button>
+        </div>
+        <details id="ld-wire" class="live__wire" open hidden>
+          <summary class="mono">Wire view: the raw HTTP, decoded</summary>
+          <pre id="ld-wire-log" class="mono"></pre>
+        </details>
       </div>
     </section>
 
@@ -1511,7 +1551,7 @@ server {
         L402 is interactive: challenge, pay, retry. <b>Cashu is bearer money</b> —
         the client attaches an ecash token to the request itself and gets the
         resource in a single round trip. Tokens are blind-signed by the mint,
-        so the payment can't be linked back to the payer.
+        so it can't link the token you spend to the wallet that bought it.
       </p>
       <div class="herocode">
         <figure class="codecard">
@@ -1542,8 +1582,8 @@ server {
           <tbody>
             <tr><th>Round trips</th><td>2 — challenge → pay → retry</td><td class="self">1 — the token rides the request</td></tr>
             <tr><th>Client holds</th><td>a Lightning wallet</td><td class="self">bearer tokens from a mint</td></tr>
-            <tr><th>Proof of payment</th><td>macaroon + preimage</td><td class="self">the token itself (optionally P2PK-locked to your gateway)</td></tr>
-            <tr><th>Privacy</th><td>invoice visible to the paying node</td><td class="self">blind-signed — payment can't be linked to the payer</td></tr>
+            <tr><th>Proof of payment</th><td>macaroon + preimage</td><td class="self">the token itself — in P2PK mode, locked to your server's key so only you can redeem it</td></tr>
+            <tr><th>Privacy</th><td>invoice visible to the paying node</td><td class="self">blind-signed — the mint can't link a spent token to the wallet that bought it</td></tr>
             <tr><th>Gateway verification</th><td>local hash check</td><td class="self">offline DLEQ check (P2PK) or mint swap (standard)</td></tr>
             <tr><th>Replay protection</th><td>spent preimages in Redis</td><td class="self">spent tokens in Redis</td></tr>
           </tbody>
@@ -1555,7 +1595,7 @@ server {
         </a>
       </div>
       <p class="demo-note mono" style="text-align:left;">
-        <span class="muted">// enable: CASHU_ECASH_SUPPORT=true · whitelist mints in production · P2PK mode for high traffic</span>
+        <span class="muted">// enable: CASHU_ECASH_SUPPORT=true · whitelist mints in production · P2PK mode for high traffic · back up the wallet's BIP39 phrase (NUT-13)</span>
       </p>
     </section>
 
@@ -1586,7 +1626,10 @@ server {
             <p>
               Point ngx-l402 at the Lightning infrastructure you already run.
               Swap backends without touching your application — change one
-              environment variable and restart nginx.
+              environment variable and restart nginx. No node? Receive into any
+              wallet that speaks Nostr Wallet Connect. Your LND node doesn't
+              even need a public IP: run it as a Tor onion service, set
+              <span class="mono">SOCKS5_PROXY</span>, and ngx-l402 connects to it over Tor.
             </p>
             <div class="bgrid">
               <div class="bgrid__cell"><span class="mono">LND</span></div>
@@ -1625,10 +1668,14 @@ server {
         <p><b>Dynamic pricing</b> — change any route's price with one Redis <span class="mono">SET</span>; picked up on the next request, no nginx reload. <a class="link" href="/docs/config-redis.html">docs</a></p>
         <p><b>Dry-run (shadow) mode</b> — evaluate the paywall on live production traffic, log what <em>would</em> happen, block nothing. <a class="link" href="/docs/dry-run.html">docs</a></p>
         <p><b>Prometheus metrics</b> — an <span class="mono">l402_metrics</span> scrape endpoint with counters aggregated across all nginx workers. <a class="link" href="/docs/dry-run.html">docs</a></p>
+        <p><b>Structured logs</b> — <span class="mono">l402_log_format json</span> writes one JSON line per challenge, verification, or rate-limit event. <a class="link" href="/docs/logging.html">docs</a></p>
         <p><b>Multi-tenant payouts</b> — per-route LNURL addresses (static or via Redis), so each tenant is paid to their own wallet. <a class="link" href="/docs/config-multi-tenant.html">docs</a></p>
         <p><b>Pay once, keep access</b> — <span class="mono">l402_indefinite_access</span> turns one payment into a subscription-style credential. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Expiring access</b> — <span class="mono">l402_macaroon_timeout</span> time-boxes credentials for metered plans. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
-        <p><b>Auto-detect payment</b> — the gateway confirms the invoice settled on its own Lightning node and unlocks automatically, so the client never has to return a preimage — even wallets that can't produce a usable one just work. Available on LND · CLN · BOLT12 · Eclair. <a class="link" href="/docs/lightning.html">docs</a></p>
+        <p><b>Realms</b> — <span class="mono">l402_realm</span> lets one payment unlock a whole group of paths: a day-pass or subscription instead of a per-URL charge. <a class="link" href="/docs/realm.html">docs</a></p>
+        <p><b>Free methods</b> — <span class="mono">l402_exempt_methods HEAD;</span> skips the paywall for the methods you name, so presence checks stay free while <span class="mono">GET</span> stays paid. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
+        <p><b>Auto-detect payment</b> — the gateway confirms the invoice settled on its own Lightning node and unlocks automatically, so the client never has to return a preimage — even wallets that can't produce a usable one just work. Available on LND · CLN · BOLT12 · Eclair, and NWC wallets that support <span class="mono">lookup_invoice</span>. <a class="link" href="/docs/lightning.html">docs</a></p>
+        <p><b>HTTPS without a separate proxy</b> — nginx in the Docker image serves HTTPS directly. Run certbot next to it and your free Let's Encrypt certificate renews on its own. <a class="link" href="/docs/deploy-tls.html">docs</a></p>
         <p><b>gRPC upstreams</b> — the same paywall works in front of <span class="mono">grpc_pass</span> services over HTTP/2. <a class="link" href="/docs/">docs</a></p>
       </div>
     </section>
@@ -1662,7 +1709,7 @@ server {
     { <span class="b">"type"</span>: <span class="s">"cashu"</span>, <span class="b">"mints"</span>: [<span class="s">"https://mint.minibits.cash"</span>], <span class="b">"p2pk_supported"</span>: <span class="n">true</span> }
   ],
   <span class="b">"routes"</span>: [
-    { <span class="b">"path"</span>: <span class="s">"/v1/chat"</span>, <span class="b">"price"</span>: { <span class="b">"type"</span>: <span class="s">"static"</span>, <span class="b">"amount_msat"</span>: <span class="n">1000000</span> } }
+    { <span class="b">"path"</span>: <span class="s">"/v1/chat"</span>, <span class="b">"price"</span>: { <span class="b">"type"</span>: <span class="s">"static"</span>, <span class="b">"amount_msat"</span>: <span class="n">10000</span> } }
   ]
 }</pre>
           </div>
@@ -1671,6 +1718,9 @@ server {
         <p class="herocode__cap mono">
           ↑ one directive — <b>l402_manifest;</b> — makes the whole API surface
           discoverable: routes, prices, and payment backends, in one JSON document.
+          Directories such as <a class="link" href="https://402index.io/about" target="_blank" rel="noopener noreferrer">402 Index</a>
+          already read it, and <b>l402_payment_html off;</b> gives agent-only routes a
+          headers-only 402 — no HTML page to download.
         </p>
       </div>
       <div class="ctas" style="margin-top:28px;margin-bottom:0;">
@@ -1689,9 +1739,9 @@ server {
       </div>
       <h2 id="quickstart-h" class="h2">Run the gateway in 60 seconds.</h2>
       <p class="lede lede--narrow">
-        Pre-built container, one docker command. The simplest setup needs only an
-        LNURL address to receive at — no node to run. Swap in LND, LNC, CLN,
-        NWC, BOLT12, or Eclair by changing env vars.
+        Pre-built container, one docker command. The simplest setup needs no node:
+        receive at an LNURL address, or into your own wallet over NWC. Swap in
+        LND, LNC, CLN, BOLT12, or Eclair by changing env vars.
       </p>
       <div class="quick-cmd">
         <figure class="codecard">
@@ -1783,7 +1833,6 @@ server {
               <th>&nbsp;</th>
               <th class="self">ngx-l402</th>
               <th>Aperture</th>
-              <th>Fewsats</th>
               <th>Lightning&nbsp;Enable</th>
             </tr>
           </thead>
@@ -1792,28 +1841,24 @@ server {
               <th>What it is</th>
               <td class="self">nginx module</td>
               <td>standalone proxy</td>
-              <td>hosted platform</td>
               <td>hosted layer</td>
             </tr>
             <tr>
               <th>Self-hosted</th>
               <td class="self yes">yes — your nginx</td>
-              <td>yes (+ etcd)</td>
-              <td class="no">no</td>
+              <td>yes</td>
               <td class="no">no (BYO key)</td>
             </tr>
             <tr>
               <th>Non-custodial</th>
               <td class="self yes">yes</td>
               <td>yes</td>
-              <td>platform-mediated</td>
               <td class="no">custodial provider</td>
             </tr>
             <tr>
               <th>Backends</th>
               <td class="self">LND · LNC · CLN · Eclair · LNURL · NWC · BOLT12 · Cashu</td>
-              <td>LND</td>
-              <td>abstracted</td>
+              <td>LND (direct or via LNC)</td>
               <td>Strike / OpenNode</td>
             </tr>
             <tr>
@@ -1821,12 +1866,10 @@ server {
               <td class="self yes">no (LNURL / NWC)</td>
               <td class="no">yes (LND)</td>
               <td>no</td>
-              <td>no</td>
             </tr>
             <tr>
               <th>Cashu / privacy</th>
               <td class="self yes">yes</td>
-              <td class="no">no</td>
               <td class="no">no</td>
               <td class="no">no</td>
             </tr>
@@ -1834,15 +1877,14 @@ server {
               <th>Discovery manifest</th>
               <td class="self yes">/.well-known/l402-services</td>
               <td class="no">no</td>
-              <td>index</td>
-              <td class="no">no</td>
+              <td>hosted registry</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p class="demo-note mono" style="text-align:left;">
-        <span class="muted">// Alby, l402-requests and the Fewsats SDK are L402 <em>clients</em> — they pay ngx-l402 endpoints, so they complement it rather than compete.</span><br />
-        <span class="muted">// snapshot as of July 2026 — these projects evolve. Spot something stale or unfair?
+        <span class="muted">// Alby and l402-requests are L402 <em>clients</em> — they pay ngx-l402 endpoints, so they complement it rather than compete.</span><br />
+        <span class="muted">// snapshot as of September 2026 — these projects evolve. Spot something stale or unfair?
           <a class="link" href="https://github.com/ngx-l402/ngx-l402.org/issues" target="_blank" rel="noopener noreferrer">open an issue</a>.</span>
       </p>
     </section>
@@ -1871,10 +1913,10 @@ server {
           <h3 class="whycard__title">Spent proofs can't be reused.</h3>
           <div class="whycard__body">
             <p>
-              Macaroons are bound to the exact request path, and settled preimages and
-              Cashu tokens are recorded in Redis. If Redis is configured but unreachable,
-              the gateway <b>fails closed</b> — it returns 402 rather than letting a
-              request through unpaid.
+              Macaroons are bound to the request path and HTTP method, and settled
+              preimages and Cashu tokens are recorded in Redis. If Redis is configured
+              but unreachable, the gateway <b>fails closed</b> — it refuses payments
+              rather than risk accepting a reused one.
             </p>
           </div>
         </article>
@@ -1885,8 +1927,10 @@ server {
             <p>
               Per-route, per-IP invoice rate limiting
               (<span class="mono">l402_invoice_rate_limit</span>) caps challenge
-              generation. Cashu P2PK proofs verify <b>offline</b> (NUT-12 DLEQ) —
-              no mint round-trip on the hot path.
+              generation. It keys on the connection address, so forged
+              <span class="mono">X-Forwarded-For</span> headers can't dodge it.
+              Cashu P2PK proofs verify <b>offline</b> (NUT-12 DLEQ) — no mint
+              round-trip on the hot path.
             </p>
           </div>
         </article>
@@ -1901,28 +1945,16 @@ server {
       <h2 id="faq-h" class="h2">Questions.</h2>
       <div class="faq">
         <details>
-          <summary>Do I need to run a Lightning node?</summary>
-          <p>No. The LNURL and NWC backends let you point at any Lightning address or wallet — no node to operate. Run LND / CLN / Eclair only if you want to.</p>
-        </details>
-        <details>
           <summary>Is it custodial? Where do the sats go?</summary>
           <p>Non-custodial. Payments go directly to the node or address you configure. ngx-l402 never holds funds — it only checks proof of payment.</p>
         </details>
         <details>
-          <summary>What happens if a payment fails or is never made?</summary>
-          <p>The client simply doesn't get access — it keeps receiving 402. No settlement, no access, and nothing to refund, because the gateway never takes custody.</p>
-        </details>
-        <details>
-          <summary>Can someone spam my endpoint with invoice requests?</summary>
-          <p>Set <span class="mono">l402_invoice_rate_limit</span> per route to cap invoice generation per IP. With Redis configured, replay and spend-tracking are shared across all nginx workers.</p>
-        </details>
-        <details>
-          <summary>How does an AI agent know what a route costs?</summary>
-          <p>Enable <span class="mono">l402_manifest</span> to publish <span class="mono">/.well-known/l402-services</span> — a JSON document of routes, prices, and accepted backends. An agent with only your hostname can discover and pay.</p>
+          <summary>Do I need to run a Lightning node?</summary>
+          <p>No. Receive at a Lightning address with the LNURL backend, or straight into your own wallet with the NWC backend. NWC isn't only for paying: give ngx-l402 a Nostr Wallet Connect connection that may create invoices (<span class="mono">make_invoice</span>, plus <span class="mono">lookup_invoice</span> for auto-detect) and every payment lands in that wallet. It needs no permission to spend, so leave spending off. Run LND / CLN / Eclair only if you want to. <a class="link" href="/docs/config-env-vars.html#nwc-nostr-wallet-connect">docs</a></p>
         </details>
         <details>
           <summary>Which wallets work?</summary>
-          <p>Any wallet that returns a standard 32-byte preimage. Note: some wallets (e.g. Wallet of Satoshi) return a non-standard 48-byte preimage that won't work with the classic flow — use auto-detect mode (supported on the LND, CLN, BOLT12, and Eclair backends) or a standard wallet.</p>
+          <p>Any wallet that returns a standard 32-byte preimage. Note: some wallets (e.g. Wallet of Satoshi) return a non-standard 48-byte preimage that won't work with the classic flow — use auto-detect mode (supported on the LND, CLN, BOLT12, and Eclair backends, and on NWC wallets that support <span class="mono">lookup_invoice</span>) or a standard wallet.</p>
         </details>
         <details>
           <summary>Which nginx versions are supported?</summary>
@@ -1931,6 +1963,22 @@ server {
         <details>
           <summary>Can I test it without spending real sats?</summary>
           <p>Yes — point it at a regtest LND or a Cashu mint for local testing. Mainnet and regtest use the same config.</p>
+        </details>
+        <details>
+          <summary>What happens if a payment fails or is never made?</summary>
+          <p>The client simply doesn't get access — it keeps receiving 402. No settlement, no access, and nothing to refund, because the gateway never takes custody.</p>
+        </details>
+        <details>
+          <summary>How does an AI agent know what a route costs?</summary>
+          <p>Enable <span class="mono">l402_manifest</span> to publish <span class="mono">/.well-known/l402-services</span> — a JSON document of routes, prices, and accepted backends. An agent with only your hostname can discover and pay.</p>
+        </details>
+        <details>
+          <summary>Can someone spam my endpoint with invoice requests?</summary>
+          <p>Set <span class="mono">l402_invoice_rate_limit</span> per route to cap invoice generation per IP. With Redis configured, replay and spend-tracking are shared across all nginx workers.</p>
+        </details>
+        <details>
+          <summary>Can my Lightning node stay behind Tor?</summary>
+          <p>Yes. Set <span class="mono">SOCKS5_PROXY=socks5://127.0.0.1:9050</span> and the gateway reaches your LND node's <span class="mono">.onion</span> address over Tor, so the node never needs a public IP. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         </details>
       </div>
     </section>
@@ -1945,6 +1993,7 @@ server {
           </div>
           <p class="footer__blurb">
             A Lightning paywall as an nginx module. Open-source, MIT-licensed.
+            No GitHub account? <a class="link" href="https://github.com/ngx-l402/ngx-l402/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contribute over Nostr</a> with ngit.
           </p>
         </div>
         <div class="footer__col">
@@ -1969,7 +2018,7 @@ server {
         </div>
       </div>
       <div class="footer__bottom mono">
-        <span>ngx-l402.org · <a class="link" href="https://github.com/ngx-l402/ngx-l402/releases/latest" target="_blank" rel="noopener noreferrer" data-version>v1.2.7</a> · MIT</span>
+        <span>ngx-l402.org · <a class="link" href="https://github.com/ngx-l402/ngx-l402/releases/latest" target="_blank" rel="noopener noreferrer" data-version>v1.3.0</a> · MIT</span>
         <span class="muted">// Lightning-native. Non-custodial. Not a wallet. Not investment advice.</span>
       </div>
     </footer>
