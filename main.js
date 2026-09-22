@@ -473,8 +473,10 @@
     say(`Found "${(manifest.service && manifest.service.name) || "a service"}" with ${routes.length} paid route${routes.length === 1 ? "" : "s"}:`);
     routes.forEach((r) => say(`  ${r.path}  ${r.price && r.price.amount_msat ? fmtAmount(r.price.amount_msat / 1000) : "priced per request"}`));
     const route = routes.find((r) => r.path === $("ld-path").value) || routes[0];
-    const sats = route.price && route.price.amount_msat / 1000;
-    if (!(sats <= BUDGET_SATS)) return say(`${route.path} has no fixed price within budget. Stopping.`);
+    // null coerces to 0 in comparisons, so a null price would read as
+    // "within budget" — treat any non-numeric price as unaffordable.
+    const sats = route.price && route.price.amount_msat != null ? route.price.amount_msat / 1000 : null;
+    if (sats == null || !(sats <= BUDGET_SATS)) return say(`${route.path} has no fixed price within budget. Stopping.`);
     $("ld-path").value = route.path;
     say(`Picking ${route.path}: ${fmtAmount(sats)} fits the budget. Requesting it…`);
     if (!(await request(true))) return say("No payable challenge came back. Stopping.");
