@@ -1954,7 +1954,7 @@ server {
         </details>
         <details>
           <summary>Which wallets work?</summary>
-          <p>Any wallet that returns a standard 32-byte preimage. Note: some wallets (e.g. Wallet of Satoshi) return a non-standard 48-byte preimage that won't work with the classic flow — use auto-detect mode (supported on the LND, CLN, BOLT12, and Eclair backends, and on NWC wallets that support <span class="mono">lookup_invoice</span>) or a standard wallet.</p>
+          <p>Any Lightning wallet can pay. To unlock, the payer pastes the preimage, the 64-character receipt most wallets show after paying. Some custodial wallets don't show it, especially when payer and payee use the same provider. For them, turn on auto-detect and the gateway checks the invoice itself (supported on the LND, CLN, BOLT12, and Eclair backends, and on NWC wallets that support <span class="mono">lookup_invoice</span>).</p>
         </details>
         <details>
           <summary>Which nginx versions are supported?</summary>
