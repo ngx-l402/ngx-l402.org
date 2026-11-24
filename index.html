@@ -6,7 +6,7 @@
   <title>ngx-l402 · Accept Lightning payments in front of any HTTP API</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="description"
-    content="An open-source nginx module that puts a Lightning paywall in front of any HTTP API — L402, two lines of nginx config, eight payment backends, non-custodial." />
+    content="An open-source nginx module that puts a Lightning paywall in front of any HTTP API or MCP server — L402, two lines of nginx config, per-tool MCP pricing, eight payment backends, non-custodial." />
   <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#14150e" media="(prefers-color-scheme: dark)" />
   <script>
@@ -29,7 +29,7 @@
     "name": "ngx-l402",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Linux (nginx module)",
-    "description": "An open-source nginx module that puts a Lightning (L402) paywall in front of any HTTP API. Self-hosted, non-custodial, eight payment backends.",
+    "description": "An open-source nginx module that puts a Lightning (L402) paywall in front of any HTTP API or MCP server, with per-tool pricing for MCP. Self-hosted, non-custodial, eight payment backends.",
     "url": "https://ngx-l402.org",
     "downloadUrl": "https://github.com/ngx-l402/ngx-l402/releases",
     "codeRepository": "https://github.com/ngx-l402/ngx-l402",
@@ -46,7 +46,7 @@
 
   <meta property="og:title" content="ngx-l402 · Lightning paywall as an nginx module" />
   <meta property="og:description"
-    content="Accept Lightning payments in front of any HTTP API. Two lines of nginx config, eight payment backends, non-custodial. L402." />
+    content="Accept Lightning payments in front of any HTTP API or MCP server. Two lines of nginx config, per-tool MCP pricing, eight payment backends, non-custodial. L402." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://ngx-l402.org/" />
   <meta property="og:site_name" content="ngx-l402" />
@@ -57,7 +57,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="ngx-l402 · Lightning paywall as an nginx module" />
   <meta name="twitter:description"
-    content="Accept Lightning payments in front of any HTTP API. Two lines of nginx config, eight payment backends, non-custodial. L402." />
+    content="Accept Lightning payments in front of any HTTP API or MCP server. Two lines of nginx config, per-tool MCP pricing, eight payment backends, non-custodial. L402." />
   <meta name="twitter:image" content="https://ngx-l402.org/og-image.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -88,6 +88,8 @@
       --accent-tint: rgba(45, 91, 255, 0.06);
       --yellow: #e8a317;
       --green: #4caf50;
+      --ok-ink: #2c7a31;
+      --warn-ink: #b24a12;
 
       --code-bg: #11130b;
       --code-bg-2: #161811;
@@ -126,6 +128,8 @@
       --accent-ink: #a6bbff;
       --accent-tint: rgba(127, 151, 255, 0.13);
       --green: #6fce7a;
+      --ok-ink: #7fd58a;
+      --warn-ink: #ff9d66;
       --shadow-card: 0 1px 0 rgba(0, 0, 0, .3), 0 12px 30px -16px rgba(0, 0, 0, .55);
       --shadow-soft: 0 1px 0 rgba(0, 0, 0, .3), 0 2px 10px -4px rgba(0, 0, 0, .4);
     }
@@ -325,7 +329,7 @@
     }
     .topbar__burger:hover { background: var(--bg-2); }
 
-    @media (max-width: 820px) {
+    @media (max-width: 1270px) { /* the full nav needs ~1250px */
       .topbar__burger { display: inline-flex; }
       .topbar__nav {
         display: none;
@@ -1211,6 +1215,109 @@
       .more { grid-template-columns: 1fr; }
     }
 
+    /* ============================ MCP ============================ */
+    .newtag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px; font-weight: 600; line-height: 1;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--accent); background: var(--accent-tint);
+      border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+      padding: 3px 5px; border-radius: 4px;
+    }
+    .topbar__link .newtag { margin-left: 5px; vertical-align: 1px; }
+    .newpill {
+      display: flex; width: fit-content; max-width: 100%;
+      align-items: center; gap: 9px;
+      padding: 5px 12px 5px 6px;
+      border: 1px solid var(--rule-2); border-radius: 999px;
+      background: var(--bg);
+      font-size: 12px; color: var(--ink-2);
+      margin-bottom: 22px;
+      transition: border-color .12s, box-shadow .12s, color .12s;
+    }
+    .newpill:hover { border-color: var(--accent); color: var(--ink); box-shadow: var(--shadow-soft); }
+
+    .mcp-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .mcp-grid .codecard { display: flex; flex-direction: column; }
+    .mcp-grid .codecard .body { flex: 1; }
+
+    .ledger {
+      margin: 0;
+      display: flex; flex-direction: column;
+      background: var(--bg);
+      border: 1px solid var(--rule-2);
+      border-radius: 10px;
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+    .ledger__cap {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 11px 18px;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--rule);
+      font-size: 11.5px; color: var(--ink-3);
+    }
+    .ledger__cap b { color: var(--ink-2); font-weight: 500; }
+    .ledger__rows {
+      list-style: none; margin: 0; padding: 0;
+      flex: 1; display: flex; flex-direction: column;
+    }
+    .ledger__row {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 18px; row-gap: 3px;
+      align-content: center; align-items: baseline;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .ledger__call { font-size: 13px; color: var(--ink-3); overflow-wrap: anywhere; }
+    .ledger__call b { color: var(--ink); font-weight: 600; }
+    .ledger__why { grid-column: 1; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
+    .ledger__price {
+      grid-column: 2; grid-row: 1 / span 2; align-self: center;
+      font-size: 13px; font-weight: 600; color: var(--ink);
+      text-align: right; white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .ledger__price--free { color: var(--ok-ink); }
+    .ledger__price--no { color: var(--warn-ink); }
+    .ledger__foot {
+      padding: 12px 18px;
+      background: var(--bg-2);
+      font-size: 12.5px; line-height: 1.5; color: var(--ink-3);
+    }
+
+    .mcp-points {
+      list-style: none; padding: 0; margin: 36px 0 0;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    .mcp-point { padding-top: 18px; border-top: 1px solid var(--rule); }
+    .mcp-point h3 { font-size: 15px; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .mcp-point p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); text-wrap: pretty; }
+
+    .mcp-req {
+      margin: 28px 0 0;
+      padding: 14px 18px;
+      border-left: 3px solid var(--yellow);
+      background: var(--bg-2);
+      border-radius: 0 8px 8px 0;
+      font-size: 13.5px; line-height: 1.6; color: var(--ink-2);
+      max-width: 92ch;
+      text-wrap: pretty;
+    }
+    .mcp-req b { color: var(--ink); font-weight: 600; }
+    .mcp-req .mono { font-size: 12.5px; white-space: nowrap; }
+
+    @media (max-width: 1180px) {
+      .mcp-grid, .mcp-points { grid-template-columns: 1fr; }
+    }
+
     /* ============================ RESPONSIVE ============================ */
     @media (max-width: 1180px) {
       :root {
@@ -1286,6 +1393,7 @@
       </a>
       <nav class="topbar__nav" aria-label="Primary">
         <a class="topbar__link" href="#demo">Demo</a>
+        <a class="topbar__link" href="#mcp">MCP<span class="newtag">new</span></a>
         <a class="topbar__link" href="#cashu">Cashu</a>
         <a class="topbar__link" href="#why">Why</a>
         <a class="topbar__link" href="#quickstart">Quickstart</a>
@@ -1326,6 +1434,11 @@
           <div class="sectionlabel">
             <span class="num">01</span><span class="dot">·</span><span class="name">Overview</span>
           </div>
+          <a class="newpill" href="#mcp">
+            <span class="newtag">new in v1.4</span>
+            <span>Per-tool pricing for MCP servers</span>
+            <span class="arrow">→</span>
+          </a>
           <h1 id="overview-h" class="h1">
             Accept Lightning payments in front of <u>any HTTP API</u>.
           </h1>
@@ -1334,7 +1447,8 @@
             in front of any upstream — no API rewrite, no SDK. It speaks
             <span class="mono">L402</span> (bLIP-26), settles over the Lightning
             Network you already run, and verifies every payment locally — you keep
-            custody of the sats.
+            custody of the sats. In front of a remote <span class="mono">MCP</span>
+            server, it prices each tool call on its own.
           </p>
           <div class="ctas">
             <a class="btn btn--primary" href="#quickstart">
@@ -1351,7 +1465,8 @@
             <span><b>MIT</b>-licensed</span><span class="dot">·</span>
             <span>Two lines of nginx</span><span class="dot">·</span>
             <span><b>8</b> payment backends</span><span class="dot">·</span>
-            <span>Non-custodial</span>
+            <span>Non-custodial</span><span class="dot">·</span>
+            <span>Per-tool <b>MCP</b> pricing</span>
           </div>
         </div>
 
@@ -1541,10 +1656,153 @@ server {
       </div>
     </section>
 
-    <!-- 03 · Cashu -->
+    <!-- 03 · MCP -->
+    <section id="mcp" class="sec" aria-labelledby="mcp-h">
+      <div class="sectionlabel">
+        <span class="num">03</span><span class="dot">·</span><span class="name">MCP</span><span class="newtag">new</span>
+      </div>
+      <h2 id="mcp-h" class="h2">Price every MCP tool on its own.</h2>
+      <p class="lede lede--narrow">
+        A remote MCP server takes every message as a <span class="mono">POST</span>
+        to one URL, so a plain paywall charges the same for all of them and one
+        token opens every tool. <span class="mono">l402_mcp</span> prices and
+        binds each tool call at the gateway. Your MCP server gets no payment code.
+      </p>
+      <div class="mcp-grid">
+
+        <figure class="codecard">
+          <figcaption class="titlebar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="file">/etc/nginx/conf.d/mcp.conf</span>
+            <button class="copy" type="button" aria-label="Copy /etc/nginx/conf.d/mcp.conf">copy</button>
+          </figcaption>
+          <div class="body">
+<pre><span class="k">server</span> {
+  <span class="k">listen</span> <span class="n">443</span> <span class="k">ssl</span>;
+  <span class="k">server_name</span> <span class="s">mcp.example.com</span>;
+
+  <span class="k">location</span> <span class="s">/mcp</span> {
+    <span class="k">l402</span>                         <span class="s">on</span>;
+    <span class="k">l402_mcp</span>                     <span class="s">on</span>;
+
+    <span class="c"># your server rejects header/body mismatches</span>
+    <span class="k">l402_mcp_upstream_validates</span>  <span class="s">on</span>;
+
+    <span class="c"># msat. Any tool without its own line.</span>
+    <span class="k">l402_amount_msat_default</span>     <span class="n">1000</span>;
+
+    <span class="c"># a tool with its own price</span>
+    <span class="k">l402_mcp_tool</span>  <span class="s">summarize</span>     <span class="n">5000</span>;
+
+    <span class="k">proxy_pass</span>                   <span class="s">http://mcp-server</span>;
+  }
+}</pre>
+          </div>
+          <!-- prettier-ignore -->
+          <template class="copy-src">server {
+  listen 443 ssl;
+  server_name mcp.example.com;
+
+  location /mcp {
+    l402                         on;
+    l402_mcp                     on;
+
+    # your server rejects header/body mismatches
+    l402_mcp_upstream_validates  on;
+
+    # msat. Any tool without its own line.
+    l402_amount_msat_default     1000;
+
+    # a tool with its own price
+    l402_mcp_tool  summarize     5000;
+
+    proxy_pass                   http://mcp-server;
+  }
+}</template>
+        </figure>
+
+        <figure class="ledger" aria-label="What a client pays under that config">
+          <figcaption class="ledger__cap mono">
+            <span><b>POST /mcp</b> · what a client pays</span>
+            <span>msat</span>
+          </figcaption>
+          <ul class="ledger__rows">
+            <li class="ledger__row">
+              <span class="ledger__call mono"><b>tools/list</b></span>
+              <span class="ledger__why">Discovery. Not a charged method, so it passes through.</span>
+              <span class="ledger__price ledger__price--free mono">free</span>
+            </li>
+            <li class="ledger__row">
+              <span class="ledger__call mono">tools/call · <b>search</b></span>
+              <span class="ledger__why">No line of its own, so it costs the default.</span>
+              <span class="ledger__price mono">1,000</span>
+            </li>
+            <li class="ledger__row">
+              <span class="ledger__call mono">tools/call · <b>summarize</b></span>
+              <span class="ledger__why">Priced by its <span class="mono">l402_mcp_tool</span> line.</span>
+              <span class="ledger__price mono">5,000</span>
+            </li>
+            <li class="ledger__row">
+              <span class="ledger__call mono">tools/call · <b>summarize</b></span>
+              <span class="ledger__why">Sent with the token bought for <span class="mono">search</span>.</span>
+              <span class="ledger__price ledger__price--no mono">rejected</span>
+            </li>
+          </ul>
+          <div class="ledger__foot">
+            An unpaid call gets a <span class="mono">402</span> with the invoice in
+            <span class="mono">WWW-Authenticate</span> and in a JSON-RPC error body,
+            so L402 clients and MCP clients can both read it.
+          </div>
+        </figure>
+
+      </div>
+
+      <ul class="mcp-points">
+        <li class="mcp-point">
+          <h3>Discovery stays free</h3>
+          <p>
+            <span class="mono">tools/list</span> and every method you don't charge
+            for pass straight through. An agent sees what is for sale before it pays.
+          </p>
+        </li>
+        <li class="mcp-point">
+          <h3>A token buys one tool</h3>
+          <p>
+            The macaroon carries the tool name and the MCP method. A token bought
+            for a cheap tool does not open an expensive one.
+          </p>
+        </li>
+        <li class="mcp-point">
+          <h3>Prices you can change live</h3>
+          <p>
+            A tool's price in Redis overrides its config line, and the rest of the
+            module (Cashu, auto-detect, rate limits, dry run) works on an MCP
+            location as on any other.
+          </p>
+        </li>
+      </ul>
+
+      <p class="mcp-req">
+        <b>Before you turn it on.</b> The module never reads the request body. It
+        reads the <span class="mono">Mcp-Method</span> and <span class="mono">Mcp-Name</span>
+        headers of the <span class="mono">2026-07-28</span> Streamable HTTP transport,
+        so your MCP server must speak that revision and reject requests whose
+        headers disagree with the body. Older clients are refused, and stdio
+        servers have no HTTP to sit in front of.
+      </p>
+
+      <div class="quick-foot">
+        <a class="btn btn--secondary" href="/docs/mcp.html" target="_blank" rel="noopener noreferrer">
+          MCP tool pricing docs <span class="arrow" style="transform:translateY(-1px)">↗</span>
+        </a>
+        <span class="muted">In production on <a href="https://satboard.bar" class="link" target="_blank" rel="noopener noreferrer">satboard.bar</a> and <a href="https://chessforsats.in" class="link" target="_blank" rel="noopener noreferrer">chessforsats.in</a>.</span>
+      </div>
+    </section>
+
+    <!-- 04 · Cashu -->
     <section id="cashu" class="sec" aria-labelledby="cashu-h">
       <div class="sectionlabel">
-        <span class="num">03</span><span class="dot">·</span><span class="name">Cashu eCash</span>
+        <span class="num">04</span><span class="dot">·</span><span class="name">Cashu eCash</span>
       </div>
       <h2 id="cashu-h" class="h2">Prefer privacy? Skip the invoice — pay with Cashu.</h2>
       <p class="lede lede--narrow">
@@ -1599,10 +1857,10 @@ server {
       </p>
     </section>
 
-    <!-- 04 · Why -->
+    <!-- 05 · Why -->
     <section id="why" class="sec" aria-labelledby="why-h">
       <div class="sectionlabel">
-        <span class="num">04</span><span class="dot">·</span><span class="name">Why ngx-l402</span>
+        <span class="num">05</span><span class="dot">·</span><span class="name">Why ngx-l402</span>
       </div>
       <h2 id="why-h" class="h2">Three reasons it lives at the edge.</h2>
       <div class="whygrid">
@@ -1669,21 +1927,22 @@ server {
         <p><b>Dry-run (shadow) mode</b> — evaluate the paywall on live production traffic, log what <em>would</em> happen, block nothing. <a class="link" href="/docs/dry-run.html">docs</a></p>
         <p><b>Prometheus metrics</b> — an <span class="mono">l402_metrics</span> scrape endpoint with counters aggregated across all nginx workers. <a class="link" href="/docs/dry-run.html">docs</a></p>
         <p><b>Structured logs</b> — <span class="mono">l402_log_format json</span> writes one JSON line per challenge, verification, or rate-limit event. <a class="link" href="/docs/logging.html">docs</a></p>
-        <p><b>Multi-tenant payouts</b> — per-route LNURL addresses (static or via Redis), so each tenant is paid to their own wallet. <a class="link" href="/docs/config-multi-tenant.html">docs</a></p>
+        <p><b>Multi-tenant payouts</b> — per-route LNURL addresses (static or via Redis), so each tenant is paid to their own wallet. Name a tenant once with <span class="mono">l402_tenant</span> and point locations at it with <span class="mono">l402_tenant_ref</span>. <a class="link" href="/docs/config-multi-tenant.html">docs</a></p>
         <p><b>Pay once, keep access</b> — <span class="mono">l402_indefinite_access</span> turns one payment into a subscription-style credential. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Expiring access</b> — <span class="mono">l402_macaroon_timeout</span> time-boxes credentials for metered plans. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Realms</b> — <span class="mono">l402_realm</span> lets one payment unlock a whole group of paths: a day-pass or subscription instead of a per-URL charge. <a class="link" href="/docs/realm.html">docs</a></p>
         <p><b>Free methods</b> — <span class="mono">l402_exempt_methods HEAD;</span> skips the paywall for the methods you name, so presence checks stay free while <span class="mono">GET</span> stays paid. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Auto-detect payment</b> — the gateway confirms the invoice settled on its own Lightning node and unlocks automatically, so the client never has to return a preimage — even wallets that can't produce a usable one just work. Available on LND · CLN · BOLT12 · Eclair, and NWC wallets that support <span class="mono">lookup_invoice</span>. <a class="link" href="/docs/lightning.html">docs</a></p>
         <p><b>HTTPS without a separate proxy</b> — nginx in the Docker image serves HTTPS directly. Run certbot next to it and your free Let's Encrypt certificate renews on its own. <a class="link" href="/docs/deploy-tls.html">docs</a></p>
+        <p><b>Runtime introspection</b> — <span class="mono">l402_info_endpoint</span> serves a read-only JSON report of what the module loaded: the backend, whether Redis and Cashu are configured, and each location's effective settings. <a class="link" href="/docs/info.html">docs</a></p>
         <p><b>gRPC upstreams</b> — the same paywall works in front of <span class="mono">grpc_pass</span> services over HTTP/2. <a class="link" href="/docs/">docs</a></p>
       </div>
     </section>
 
-    <!-- 05 · Agent discovery -->
+    <!-- 06 · Agent discovery -->
     <section id="agents" class="sec" aria-labelledby="agents-h">
       <div class="sectionlabel">
-        <span class="num">05</span><span class="dot">·</span><span class="name">Agent discovery</span>
+        <span class="num">06</span><span class="dot">·</span><span class="name">Agent discovery</span>
       </div>
       <h2 id="agents-h" class="h2">Self-describing APIs for autonomous agents.</h2>
       <p class="lede lede--narrow">
@@ -1732,10 +1991,10 @@ server {
       </div>
     </section>
 
-    <!-- 05 · Quickstart -->
+    <!-- 07 · Quickstart -->
     <section id="quickstart" class="sec" aria-labelledby="quickstart-h">
       <div class="sectionlabel">
-        <span class="num">06</span><span class="dot">·</span><span class="name">Quickstart</span>
+        <span class="num">07</span><span class="dot">·</span><span class="name">Quickstart</span>
       </div>
       <h2 id="quickstart-h" class="h2">Run the gateway in 60 seconds.</h2>
       <p class="lede lede--narrow">
@@ -1814,10 +2073,10 @@ server {
       </div>
     </section>
 
-    <!-- 06 · Comparison -->
+    <!-- 08 · Comparison -->
     <section id="compare" class="sec" aria-labelledby="compare-h">
       <div class="sectionlabel">
-        <span class="num">07</span><span class="dot">·</span><span class="name">Comparison</span>
+        <span class="num">08</span><span class="dot">·</span><span class="name">Comparison</span>
       </div>
       <h2 id="compare-h" class="h2">How it compares.</h2>
       <p class="lede lede--narrow">
@@ -1889,10 +2148,10 @@ server {
       </p>
     </section>
 
-    <!-- 07 · Security -->
+    <!-- 09 · Security -->
     <section id="security" class="sec" aria-labelledby="security-h">
       <div class="sectionlabel">
-        <span class="num">08</span><span class="dot">·</span><span class="name">Security</span>
+        <span class="num">09</span><span class="dot">·</span><span class="name">Security</span>
       </div>
       <h2 id="security-h" class="h2">Built to sit in front of money.</h2>
       <div class="whygrid">
@@ -1913,7 +2172,8 @@ server {
           <h3 class="whycard__title">Spent proofs can't be reused.</h3>
           <div class="whycard__body">
             <p>
-              Macaroons are bound to the request path and HTTP method, and settled
+              Macaroons are bound to the request path and HTTP method (and, on an
+              MCP location, to the tool), and settled
               preimages and Cashu tokens are recorded in Redis. If Redis is configured
               but unreachable, the gateway <b>fails closed</b> — it refuses payments
               rather than risk accepting a reused one.
@@ -1937,10 +2197,10 @@ server {
       </div>
     </section>
 
-    <!-- 08 · FAQ -->
+    <!-- 10 · FAQ -->
     <section id="faq" class="sec" aria-labelledby="faq-h">
       <div class="sectionlabel">
-        <span class="num">09</span><span class="dot">·</span><span class="name">FAQ</span>
+        <span class="num">10</span><span class="dot">·</span><span class="name">FAQ</span>
       </div>
       <h2 id="faq-h" class="h2">Questions.</h2>
       <div class="faq">
@@ -1958,7 +2218,7 @@ server {
         </details>
         <details>
           <summary>Which nginx versions are supported?</summary>
-          <p>nginx <span class="mono">1.28.0</span> or later. Pre-built <span class="mono">.so</span> binaries ship for 1.28.0, 1.28.3, 1.29.8, 1.30.3, and 1.31.2; any other version builds in one command: <span class="mono">docker build --build-arg NGX_VERSION=&lt;version&gt; .</span></p>
+          <p>nginx <span class="mono">1.30.7</span> or later on stable, <span class="mono">1.31.9</span> or later on mainline. Older releases, 1.28 and 1.29 included, lack nginx's November 2026 HTTP/2 fixes, and the module warns at startup when loaded into one. Pre-built <span class="mono">.so</span> binaries ship for 1.30.7 and 1.31.9; any other version builds in one command: <span class="mono">docker build --build-arg NGX_VERSION=&lt;version&gt; .</span></p>
         </details>
         <details>
           <summary>Can I test it without spending real sats?</summary>
@@ -1971,6 +2231,10 @@ server {
         <details>
           <summary>How does an AI agent know what a route costs?</summary>
           <p>Enable <span class="mono">l402_manifest</span> to publish <span class="mono">/.well-known/l402-services</span> — a JSON document of routes, prices, and accepted backends. An agent with only your hostname can discover and pay.</p>
+        </details>
+        <details>
+          <summary>Can I charge for an MCP server?</summary>
+          <p>Yes, if it is a remote server on the <span class="mono">2026-07-28</span> Streamable HTTP transport. <span class="mono">l402_mcp on</span> gives each tool its own price and binds every token to one tool, while <span class="mono">tools/list</span> stays free. Your server must reject requests whose headers disagree with the body. stdio servers have no HTTP to sit in front of. <a class="link" href="/docs/mcp.html">docs</a></p>
         </details>
         <details>
           <summary>Can someone spam my endpoint with invoice requests?</summary>
@@ -2002,6 +2266,7 @@ server {
           <a href="https://gitworkshop.dev/npub1qnw27f2jsqvn05wzpd56m7ykgmepk57p0yrzw8fzc7lfhjkmjmqqmd9r6h/relay.ngit.dev/ngx-l402" target="_blank" rel="noopener noreferrer">Code on Nostr (ngit) ↗</a>
           <a href="https://github.com/ngx-l402/ngx-l402/releases">Releases</a>
           <a href="https://github.com/ngx-l402/ngx-l402/issues">Issues</a>
+          <a href="https://discord.gg/QYwcj2wuQ" target="_blank" rel="noopener noreferrer">Discord ↗</a>
           <a href="/docs/">Docs</a>
           <a href="https://github.com/ngx-l402/ngx-l402/tree/main/examples">Examples</a>
         </div>
@@ -2011,6 +2276,8 @@ server {
             rel="noopener noreferrer">Directive reference</a>
           <a href="/docs/lightning.html" target="_blank"
             rel="noopener noreferrer">Backend reference</a>
+          <a href="/docs/mcp.html" target="_blank"
+            rel="noopener noreferrer">MCP tool pricing</a>
           <a href="https://github.com/lightninglabs/L402" target="_blank" rel="noopener noreferrer">L402 spec (bLIP-26)
             ↗</a>
           <a href="https://docs.lightning.engineering/the-lightning-network/l402" target="_blank"
@@ -2018,7 +2285,7 @@ server {
         </div>
       </div>
       <div class="footer__bottom mono">
-        <span>ngx-l402.org · <a class="link" href="https://github.com/ngx-l402/ngx-l402/releases/latest" target="_blank" rel="noopener noreferrer" data-version>v1.3.0</a> · MIT</span>
+        <span>ngx-l402.org · <a class="link" href="https://github.com/ngx-l402/ngx-l402/releases/latest" target="_blank" rel="noopener noreferrer" data-version>v1.4.0</a> · MIT</span>
         <span class="muted">// Lightning-native. Non-custodial. Not a wallet. Not investment advice.</span>
       </div>
     </footer>
