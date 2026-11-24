@@ -329,7 +329,7 @@
     }
     .topbar__burger:hover { background: var(--bg-2); }
 
-    @media (max-width: 820px) {
+    @media (max-width: 1270px) { /* the full nav needs ~1250px */
       .topbar__burger { display: inline-flex; }
       .topbar__nav {
         display: none;
@@ -1677,37 +1677,47 @@ server {
             <button class="copy" type="button" aria-label="Copy /etc/nginx/conf.d/mcp.conf">copy</button>
           </figcaption>
           <div class="body">
-<pre><span class="k">location</span> <span class="s">/mcp</span> {
-  <span class="k">l402</span>                         <span class="s">on</span>;
-  <span class="k">l402_mcp</span>                     <span class="s">on</span>;
+<pre><span class="k">server</span> {
+  <span class="k">listen</span> <span class="n">443</span> <span class="k">ssl</span>;
+  <span class="k">server_name</span> <span class="s">mcp.example.com</span>;
 
-  <span class="c"># your server rejects header/body mismatches</span>
-  <span class="k">l402_mcp_upstream_validates</span>  <span class="s">on</span>;
+  <span class="k">location</span> <span class="s">/mcp</span> {
+    <span class="k">l402</span>                         <span class="s">on</span>;
+    <span class="k">l402_mcp</span>                     <span class="s">on</span>;
 
-  <span class="c"># msat. Any tool without its own line.</span>
-  <span class="k">l402_amount_msat_default</span>     <span class="n">1000</span>;
+    <span class="c"># your server rejects header/body mismatches</span>
+    <span class="k">l402_mcp_upstream_validates</span>  <span class="s">on</span>;
 
-  <span class="c"># a tool with its own price</span>
-  <span class="k">l402_mcp_tool</span>  <span class="s">summarize</span>     <span class="n">5000</span>;
+    <span class="c"># msat. Any tool without its own line.</span>
+    <span class="k">l402_amount_msat_default</span>     <span class="n">1000</span>;
 
-  <span class="k">proxy_pass</span>                   <span class="s">http://mcp-server</span>;
+    <span class="c"># a tool with its own price</span>
+    <span class="k">l402_mcp_tool</span>  <span class="s">summarize</span>     <span class="n">5000</span>;
+
+    <span class="k">proxy_pass</span>                   <span class="s">http://mcp-server</span>;
+  }
 }</pre>
           </div>
           <!-- prettier-ignore -->
-          <template class="copy-src">location /mcp {
-  l402                         on;
-  l402_mcp                     on;
+          <template class="copy-src">server {
+  listen 443 ssl;
+  server_name mcp.example.com;
 
-  # your server rejects header/body mismatches
-  l402_mcp_upstream_validates  on;
+  location /mcp {
+    l402                         on;
+    l402_mcp                     on;
 
-  # msat. Any tool without its own line.
-  l402_amount_msat_default     1000;
+    # your server rejects header/body mismatches
+    l402_mcp_upstream_validates  on;
 
-  # a tool with its own price
-  l402_mcp_tool  summarize     5000;
+    # msat. Any tool without its own line.
+    l402_amount_msat_default     1000;
 
-  proxy_pass                   http://mcp-server;
+    # a tool with its own price
+    l402_mcp_tool  summarize     5000;
+
+    proxy_pass                   http://mcp-server;
+  }
 }</template>
         </figure>
 
@@ -1917,14 +1927,14 @@ server {
         <p><b>Dry-run (shadow) mode</b> — evaluate the paywall on live production traffic, log what <em>would</em> happen, block nothing. <a class="link" href="/docs/dry-run.html">docs</a></p>
         <p><b>Prometheus metrics</b> — an <span class="mono">l402_metrics</span> scrape endpoint with counters aggregated across all nginx workers. <a class="link" href="/docs/dry-run.html">docs</a></p>
         <p><b>Structured logs</b> — <span class="mono">l402_log_format json</span> writes one JSON line per challenge, verification, or rate-limit event. <a class="link" href="/docs/logging.html">docs</a></p>
-        <p><b>Multi-tenant payouts</b> — per-route LNURL addresses (static or via Redis), so each tenant is paid to their own wallet. Define a tenant once with <span class="mono">l402_tenant</span> and point locations at it by name. <a class="link" href="/docs/config-multi-tenant.html">docs</a></p>
+        <p><b>Multi-tenant payouts</b> — per-route LNURL addresses (static or via Redis), so each tenant is paid to their own wallet. Name a tenant once with <span class="mono">l402_tenant</span> and point locations at it with <span class="mono">l402_tenant_ref</span>. <a class="link" href="/docs/config-multi-tenant.html">docs</a></p>
         <p><b>Pay once, keep access</b> — <span class="mono">l402_indefinite_access</span> turns one payment into a subscription-style credential. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Expiring access</b> — <span class="mono">l402_macaroon_timeout</span> time-boxes credentials for metered plans. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Realms</b> — <span class="mono">l402_realm</span> lets one payment unlock a whole group of paths: a day-pass or subscription instead of a per-URL charge. <a class="link" href="/docs/realm.html">docs</a></p>
         <p><b>Free methods</b> — <span class="mono">l402_exempt_methods HEAD;</span> skips the paywall for the methods you name, so presence checks stay free while <span class="mono">GET</span> stays paid. <a class="link" href="/docs/config-env-vars.html">docs</a></p>
         <p><b>Auto-detect payment</b> — the gateway confirms the invoice settled on its own Lightning node and unlocks automatically, so the client never has to return a preimage — even wallets that can't produce a usable one just work. Available on LND · CLN · BOLT12 · Eclair, and NWC wallets that support <span class="mono">lookup_invoice</span>. <a class="link" href="/docs/lightning.html">docs</a></p>
         <p><b>HTTPS without a separate proxy</b> — nginx in the Docker image serves HTTPS directly. Run certbot next to it and your free Let's Encrypt certificate renews on its own. <a class="link" href="/docs/deploy-tls.html">docs</a></p>
-        <p><b>Runtime introspection</b> — <span class="mono">l402_info_endpoint</span> serves a read-only JSON report of what the module loaded: the backend, Redis and Cashu status, and each location's effective settings. <a class="link" href="/docs/info.html">docs</a></p>
+        <p><b>Runtime introspection</b> — <span class="mono">l402_info_endpoint</span> serves a read-only JSON report of what the module loaded: the backend, whether Redis and Cashu are configured, and each location's effective settings. <a class="link" href="/docs/info.html">docs</a></p>
         <p><b>gRPC upstreams</b> — the same paywall works in front of <span class="mono">grpc_pass</span> services over HTTP/2. <a class="link" href="/docs/">docs</a></p>
       </div>
     </section>
